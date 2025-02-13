@@ -48,6 +48,16 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
+        <div>
+          <Label htmlFor="password">Подтвердите пароль</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Подтвердите пароль"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
         <Button onClick={handleRegister} className="w-full">
           Зарегистрироваться"
