@@ -1,14 +1,15 @@
 import axios from "axios";
-import { useAuthStore } from "../../entities/user/auth";
+import { getSession } from "next-auth/react";
 
 export const api = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: "http://localhost:4000",
+  // withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(async (config) => {
+  const session = await getSession();
+  if (session?.user?.accessToken) {
+    config.headers.Authorization = `Bearer ${session.user.accessToken}`;
   }
   return config;
 });

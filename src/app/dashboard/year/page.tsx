@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { GoalsSection } from "@/widgets/goals/GoalsSection";
+import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
 
 const initialYearData = [
   { id: 1, name: "Январь", weeks: [] },
@@ -29,14 +30,16 @@ const initialYearData = [
 
 export default function YearDashboardPage() {
   const [yearData, setYearData] = useState(initialYearData);
-
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonthId, setSelectedMonthId] = useState<number | null>(null);
   const [newWeekLabel, setNewWeekLabel] = useState("");
 
+  // Если есть какие-то данные об архиве (пока заглушка):
   const [archive, setArchive] = useState<any[]>([]);
 
-  //   const { data: yearData, isLoading } = useQuery(["yearData"], fetchYearData);
+  // Пример: если вы загружаете данные с бэка, тогда у вас может быть флаг:
+  const isLoading = false;
+
   const handleOpenAddWeekModal = (monthId: number) => {
     setSelectedMonthId(monthId);
     setNewWeekLabel("");
@@ -64,45 +67,80 @@ export default function YearDashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold mb-4">Страница Года</h1>
-
-      <div className="flex gap-4 overflow-x-auto">
-        {yearData.map((month) => (
-          <div
-            key={month.id}
-            className="w-72 min-w-[18rem] border rounded-md p-2 flex-shrink-0"
+      {/** Блок с целями */}
+      {/** Блок с месяцами - теперь это сетка */}
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[10rem] w-full">
+          {/* Простейший "спиннер" или Loader */}
+          <svg
+            className="animate-spin h-8 w-8 text-gray-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
           >
-            <h2 className="font-semibold mb-2 text-center">{month.name}</h2>
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8H4z"
+            ></path>
+          </svg>
+        </div>
+      ) : (
+        <div className="flex gap-4">
+          <GoalsSection />
+          <div>
+            <h2 className="text">Обзод года</h2>
+            <ScrollArea className="w-fit whitespace-nowrap rounded-md border">
+              <div className="flex  space-x-4 p-4">
+                {yearData.map((month) => (
+                  <div key={month.id}>
+                    <h2 className="font-semibold mb-2 text-center">
+                      {month.name}
+                    </h2>
+                    <div className="space-y-1">
+                      {month.weeks.map((week) => (
+                        <Link
+                          key={week.id}
+                          href={`/dashboard/week?weekId=${week.id}`}
+                          className="block bg-gray-100 rounded-md p-2 hover:bg-gray-200 text-sm"
+                        >
+                          {week.label}
+                        </Link>
+                      ))}
+                    </div>
 
-            <div className="flex flex-col gap-1">
-              {month.weeks.map((week) => (
-                <Link
-                  key={week.id}
-                  href={`/dashboard/week?weekId=${week.id}`}
-                  className="block bg-gray-100 rounded-md p-2 hover:bg-gray-200 text-sm"
-                >
-                  {week.label}
-                </Link>
-              ))}
-            </div>
-
-            <Button
-              variant="outline"
-              className="mt-2 w-full"
-              onClick={() => handleOpenAddWeekModal(month.id)}
-            >
-              + Добавить неделю
-            </Button>
+                    <Button
+                      variant="outline"
+                      className="mt-2"
+                      onClick={() => handleOpenAddWeekModal(month.id)}
+                    >
+                      + Добавить неделю
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           </div>
-        ))}
-      </div>
-
+        </div>
+      )}
+      {/** Архив задач */}
       <div className="border p-4 rounded-md">
         <h2 className="text-xl mb-2">Архив задач</h2>
         {archive.length === 0 && (
           <div className="text-sm text-gray-500">Архив пока пустой</div>
         )}
+        {/* Если архив есть, выводите блоки архива */}
       </div>
-
+      {/* Модалка "Добавить неделю" */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
           <DialogHeader>
@@ -110,8 +148,8 @@ export default function YearDashboardPage() {
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
-            <label className="block text-sm font medium text-gray-700">
-              Диапозон (например 03.02-09.02)
+            <label className="block text-sm font-medium text-gray-700">
+              Диапазон (например 03.02-09.02)
             </label>
 
             <Input
