@@ -1,13 +1,5 @@
 "use client";
 import { useState } from "react";
-import {
-  createGoal,
-  deleteGoal,
-  fetchGoals,
-  updateGoal,
-} from "@/entities/goals/api/goal.api";
-import { useQuery, QueryClient, useMutation } from "@tanstack/react-query";
-import { Goal } from "@/entities/goals/model/goal.dto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,6 +16,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSession } from "next-auth/react";
+import { useQuery, QueryClient, useMutation } from "@tanstack/react-query";
+import {
+  createGoal,
+  deleteGoal,
+  fetchGoals,
+  updateGoal,
+} from "@/entities/goals/api/goal.api";
+import { Goal } from "@/entities/goals/model/goal.dto";
+import { EditableText } from "@/shared/ui/EditableText";
+import { X } from "@mynaui/icons-react";
 
 const queryClient = new QueryClient();
 
@@ -71,7 +73,6 @@ export function GoalsSection() {
     } else {
       createMutation.mutate(goalTitle);
     }
-
     setIsDialogOpen(false);
     setGoalTitle("");
     setCurrentGoal(null);
@@ -80,32 +81,41 @@ export function GoalsSection() {
   if (isLoading) {
     return <div>Loading...</div>;
   }
-
   if (error) {
     return <div>Error loading goals</div>;
   }
 
   return (
-    <div className="border p-4 rounded-md mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Цели</h2>
-        <Button onClick={() => setIsDialogOpen(true)}>+ Создать цель</Button>
+    <div className="border border-gray-200 p-4 rounded-md mb-6 shadow-sm bg-white">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold mb-2 sm:mb-0">Цели</h2>
+        <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+          + Создать цель
+        </Button>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {goals?.map((goal) => (
           <div
             key={goal.id}
-            className="flex items-center justify-between p-3 bg-gray-100 rounded-md"
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-md shadow-sm"
           >
-            <div className="flex-1">
-              <span className="font-medium">{goal.title}</span>
-              <span className="ml-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-2  gap-2">
+              <EditableText
+                text={goal.title}
+                onSave={(newText) =>
+                  updateMutation.mutate({
+                    id: goal.id,
+                    goal: { title: newText },
+                  })
+                }
+              />
+              <span className="ml-2 text-xs text-gray-500">
                 ({goal.status})
               </span>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 items-center">
               <Select
                 value={goal.status}
                 onValueChange={(value) =>
@@ -115,7 +125,7 @@ export function GoalsSection() {
                   })
                 }
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-24" size="sm">
                   <SelectValue placeholder="Статус" />
                 </SelectTrigger>
                 <SelectContent>
@@ -126,50 +136,16 @@ export function GoalsSection() {
               </Select>
 
               <Button
-                variant="outline"
-                onClick={() => {
-                  setCurrentGoal(goal);
-                  setGoalTitle(goal.title);
-                  setIsDialogOpen(true);
-                }}
-              >
-                Редактировать
-              </Button>
-              <Button
+                size="sm"
                 variant="destructive"
                 onClick={() => deleteMutation.mutate(goal.id)}
               >
-                Удалить
+                <X />
               </Button>
             </div>
           </div>
         ))}
       </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {currentGoal ? "Редактировать цель" : "Новая цель"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <Input
-            value={goalTitle}
-            onChange={(e) => setGoalTitle(e.target.value)}
-            placeholder="Название цели"
-          />
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Отмена
-            </Button>
-            <Button onClick={handleSubmit}>
-              {currentGoal ? "Сохранить" : "Создать"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
