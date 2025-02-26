@@ -18,7 +18,7 @@ import {
 import { useGoals } from "@/shared/hooks/useGoals";
 import { Goal } from "@/entities/goals/model/goal.dto";
 import { EditableText } from "@/shared/ui/EditableText";
-import { X } from "@mynaui/icons-react";
+import { X } from "lucide-react";
 
 export function GoalsSection() {
   const { goals, isLoading, error, createGoal, updateGoal, deleteGoal } =

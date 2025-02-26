@@ -1,25 +1,26 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   DragDropContext,
   Droppable,
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { format } from "date-fns";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+  createCategory,
+  getUserCategories,
+  updateCategory,
+  deleteCategory,
+} from "@/entities/categories/api/category.api";
+import { TaskFormModal } from "@/components/TaskFormModal";
+import { CategoryFormModal } from "@/components/CategoryFormModal";
+import { TaskArchive } from "@/components/TaskArchive";
+import { TaskCategories } from "@/components/TaskCategories";
 
 // Условные дни недели
 const initialDays = [
@@ -58,11 +59,15 @@ const initialTasks = [
 ];
 
 export default function WeekPage() {
-  // Можно взять weekId из query (например, ?weekId=123)
   const searchParams = useSearchParams();
+  const router = useRouter();
   const weekId = searchParams.get("weekId");
 
-  // days: 7 дней (колонки). Заполним их начальными задачами
+  const [weekData, setWeekData] = useState({
+    startDate: "2023-10-01",
+    endDate: "2023-10-07",
+  });
+
   const [days, setDays] = useState(() => {
     const clonedDays = structuredClone(initialDays) as typeof initialDays;
     for (const task of initialTasks) {
@@ -74,13 +79,8 @@ export default function WeekPage() {
     return clonedDays;
   });
 
-  // Архив задач (в реальном проекте могли бы грузить с бэка)
   const [archivedTasks, setArchivedTasks] = useState<any[]>([]);
-
-  // Управляем состоянием модалки
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Форма задачи
   const [taskForm, setTaskForm] = useState({
     id: "",
     dayId: "",
@@ -89,12 +89,19 @@ export default function WeekPage() {
     done: false,
   });
 
-  /**
-   * Открываем модалку для СОЗДАНИЯ задачи.
-   */
+  const [categories, setCategories] = useState([]);
+  const [categoryForm, setCategoryForm] = useState({ id: "", name: "" });
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+
+  const userId = "d170f6e3-ee3f-4daf-af5c-da03857211c2"; // Пример userId, замените на реальный
+
+  useEffect(() => {
+    getUserCategories(userId).then(setCategories);
+  }, [userId]);
+
   const handleOpenAddTaskModal = (dayId: string) => {
     setTaskForm({
-      id: "", // пустой => новая
+      id: "",
       dayId,
       title: "",
       description: "",
@@ -103,9 +110,6 @@ export default function WeekPage() {
     setIsModalOpen(true);
   };
 
-  /**
-   * Открываем модалку для РЕДАКТИРОВАНИЯ задачи.
-   */
   const handleOpenEditTaskModal = (task: any) => {
     setTaskForm({
       id: task.id,
@@ -117,11 +121,7 @@ export default function WeekPage() {
     setIsModalOpen(true);
   };
 
-  /**
-   * Сохранение формы (Create / Edit).
-   */
   const handleSubmitForm = () => {
-    // Если id пустой, значит новая задача
     if (!taskForm.id) {
       const newTask = {
         ...taskForm,
@@ -137,10 +137,8 @@ export default function WeekPage() {
         })
       );
     } else {
-      // Редактирование существующей
       const updatedDays = structuredClone(days) as typeof days;
 
-      // 1) Удаляем из старого day
       for (const day of updatedDays) {
         const idx = day.tasks.findIndex((t) => t.id === taskForm.id);
         if (idx !== -1) {
@@ -149,7 +147,6 @@ export default function WeekPage() {
         }
       }
 
-      // 2) Добавляем (обновлённую) задачу в текущий dayId
       const newTask = {
         id: taskForm.id,
         title: taskForm.title,
@@ -169,13 +166,8 @@ export default function WeekPage() {
     setIsModalOpen(false);
   };
 
-  /**
-   * Отправить задачу в Архив (внутри модалки).
-   */
   const handleArchiveTask = () => {
     if (!taskForm.id) {
-      // Если задача новая, она ещё не создана
-      // Можно сразу поместить в archivedTasks, если так задумано
       const newArchived = {
         id: "task-" + Date.now(),
         title: taskForm.title || "Без названия",
@@ -184,15 +176,12 @@ export default function WeekPage() {
       };
       setArchivedTasks((prev) => [...prev, newArchived]);
     } else {
-      // Ищем задачу среди days, удаляем её
       const updatedDays = structuredClone(days) as typeof days;
 
       for (const day of updatedDays) {
         const idx = day.tasks.findIndex((t) => t.id === taskForm.id);
         if (idx !== -1) {
-          // Берём задачу
           const [foundTask] = day.tasks.splice(idx, 1);
-          // Архивируем
           setArchivedTasks((prev) => [
             ...prev,
             {
@@ -208,13 +197,9 @@ export default function WeekPage() {
       setDays(updatedDays);
     }
 
-    // Закрыть модалку
     setIsModalOpen(false);
   };
 
-  /**
-   * Обработчик DnD
-   */
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result;
     if (!destination) return;
@@ -238,161 +223,144 @@ export default function WeekPage() {
     setDays(updatedDays);
   };
 
+  const formatDate = (date: string) => format(new Date(date), "dd.MM.yyyy");
+
+  const handleOpenAddCategoryModal = () => {
+    setCategoryForm({ id: "", name: "" });
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleOpenEditCategoryModal = (category: any) => {
+    setCategoryForm(category);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSubmitCategoryForm = async () => {
+    if (!categoryForm.id) {
+      const newCategory = await createCategory(userId, categoryForm.name);
+      setCategories((prev) => [...prev, newCategory]);
+    } else {
+      const updatedCategory = await updateCategory(
+        categoryForm.id,
+        categoryForm.name
+      );
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat.id === updatedCategory.id ? updatedCategory : cat
+        )
+      );
+    }
+    setIsCategoryModalOpen(false);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    await deleteCategory(id);
+    setCategories((prev) => prev.filter((cat) => cat.id !== id));
+  };
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">
-        Неделя (ID: {weekId ?? "не указано"})
-      </h1>
-
-      {/* Колонки с днями и задачами */}
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-4 overflow-auto mb-8">
-          {days.map((day) => (
-            <Droppable key={day.id} droppableId={day.id}>
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={`w-64 min-w-[16rem] p-2 border rounded-md flex-shrink-0 transition-colors ${
-                    snapshot.isDraggingOver ? "bg-blue-50" : "bg-white"
-                  }`}
-                >
-                  <h2 className="font-semibold text-center mb-2">
-                    {day.label}
-                  </h2>
-
-                  {day.tasks.map((task, index) => (
-                    <Draggable
-                      key={task.id}
-                      draggableId={task.id}
-                      index={index}
-                    >
-                      {(dragProvided, dragSnapshot) => (
-                        <div
-                          ref={dragProvided.innerRef}
-                          {...dragProvided.draggableProps}
-                          {...dragProvided.dragHandleProps}
-                          className={`p-2 mb-2 rounded-md bg-gray-100 transition-colors cursor-pointer ${
-                            dragSnapshot.isDragging ? "bg-gray-200" : ""
-                          }`}
-                          onClick={() => handleOpenEditTaskModal(task)}
-                        >
-                          <div className="text-sm font-semibold">
-                            {task.title}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {task.description}
-                          </div>
-                          <div className="text-xs mt-1">
-                            Статус: {task.done ? "Сделано" : "Не сделано"}
-                          </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 w-full"
-                    onClick={() => handleOpenAddTaskModal(day.id)}
+      <div className="flex gap-2 items-center mb-4">
+        <Button
+          variant="outline"
+          onClick={() => router.push("/dashboard/year")}
+        >
+          <ArrowLeft />
+        </Button>
+        <h1 className="text-2xl font-bold">
+          Неделя: {formatDate(weekData.startDate)} -{" "}
+          {formatDate(weekData.endDate)}
+        </h1>
+      </div>
+      <div className="w-full overflow-x-auto">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="grid grid-flow-col auto-cols-max gap-4 min-w-min mb-8 p-2">
+            {days.map((day) => (
+              <Droppable key={day.id} droppableId={day.id}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`w-64 min-w-[16rem] p-2 border rounded-md flex-shrink-0 transition-colors ${
+                      snapshot.isDraggingOver ? "bg-blue-50" : "bg-white"
+                    }`}
                   >
-                    + Задача
-                  </Button>
-                </div>
-              )}
-            </Droppable>
-          ))}
-        </div>
-      </DragDropContext>
+                    <h2 className="font-semibold text-center mb-2">
+                      {day.label}
+                    </h2>
 
-      {/* Блок Архива задач */}
-      <div className="border p-3 rounded-md">
-        <h2 className="font-semibold mb-2 text-lg">Архив задач</h2>
-        {archivedTasks.length === 0 && (
-          <div className="text-gray-500 text-sm">Архив пуст</div>
-        )}
-        {archivedTasks.map((task) => (
-          <div
-            key={task.id}
-            className="p-2 mb-2 bg-gray-100 rounded-md text-sm"
-          >
-            <div className="font-semibold">{task.title}</div>
-            <div className="text-xs text-gray-600">{task.description}</div>
-            <div className="text-xs mt-1">
-              Статус: {task.done ? "Сделано" : "Не сделано"}
-            </div>
+                    {day.tasks.map((task, index) => (
+                      <Draggable
+                        key={task.id}
+                        draggableId={task.id}
+                        index={index}
+                      >
+                        {(dragProvided, dragSnapshot) => (
+                          <div
+                            ref={dragProvided.innerRef}
+                            {...dragProvided.draggableProps}
+                            {...dragProvided.dragHandleProps}
+                            className={`p-2 mb-2 rounded-md bg-gray-100 transition-colors cursor-pointer ${
+                              dragSnapshot.isDragging ? "bg-gray-200" : ""
+                            }`}
+                            onClick={() => handleOpenEditTaskModal(task)}
+                          >
+                            <div className="text-sm font-semibold">
+                              {task.title}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {task.description}
+                            </div>
+                            <div className="text-xs mt-1">
+                              Статус: {task.done ? "Сделано" : "Не сделано"}
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={() => handleOpenAddTaskModal(day.id)}
+                    >
+                      + Задача
+                    </Button>
+                  </div>
+                )}
+              </Droppable>
+            ))}
           </div>
-        ))}
+        </DragDropContext>
       </div>
 
-      {/* Модалка для Создания/Редактирования задачи */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {taskForm.id ? "Редактировать задачу" : "Новая задача"}
-            </DialogTitle>
-          </DialogHeader>
+      <TaskArchive archivedTasks={archivedTasks} />
 
-          <div className="space-y-4 mt-2">
-            {/* Название */}
-            <div>
-              <Label htmlFor="title">Название задачи</Label>
-              <Input
-                id="title"
-                placeholder="Например: Купить продукты"
-                value={taskForm.title}
-                onChange={(e) =>
-                  setTaskForm((prev) => ({ ...prev, title: e.target.value }))
-                }
-              />
-            </div>
+      <TaskCategories
+        categories={categories}
+        onAddCategory={handleOpenAddCategoryModal}
+        onEditCategory={handleOpenEditCategoryModal}
+        onDeleteCategory={handleDeleteCategory}
+      />
 
-            {/* Описание */}
-            <div>
-              <Label htmlFor="description">Описание</Label>
-              <Textarea
-                id="description"
-                placeholder="Описание задачи"
-                value={taskForm.description}
-                onChange={(e) =>
-                  setTaskForm((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-              />
-            </div>
+      <TaskFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        taskForm={taskForm}
+        setTaskForm={setTaskForm}
+        onSubmit={handleSubmitForm}
+        onArchive={handleArchiveTask}
+      />
 
-            {/* Статус (Switch) */}
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={taskForm.done}
-                onCheckedChange={(checked) =>
-                  setTaskForm((prev) => ({ ...prev, done: checked }))
-                }
-              />
-              <Label>Сделано?</Label>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              {/* Кнопка “Отправить в Архив” */}
-              <Button variant="destructive" onClick={handleArchiveTask}>
-                В Архив
-              </Button>
-
-              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-                Отмена
-              </Button>
-              <Button onClick={handleSubmitForm}>
-                {taskForm.id ? "Сохранить" : "Создать"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CategoryFormModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categoryForm={categoryForm}
+        setCategoryForm={setCategoryForm}
+        onSubmit={handleSubmitCategoryForm}
+      />
     </div>
   );
 }
