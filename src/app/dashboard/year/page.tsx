@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,46 +11,48 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { GoalsSection } from "@/widgets/goals/GoalsSection";
-
-const initialYearData = [
-  { id: 1, name: "Январь", weeks: [] },
-  { id: 2, name: "Февраль", weeks: [] },
-  { id: 3, name: "Март", weeks: [] },
-  { id: 4, name: "Апрель", weeks: [] },
-  { id: 5, name: "Май", weeks: [] },
-  { id: 6, name: "Июнь", weeks: [] },
-  { id: 7, name: "Июль", weeks: [] },
-  { id: 8, name: "Август", weeks: [] },
-  { id: 9, name: "Сентябрь", weeks: [] },
-  { id: 10, name: "Октябрь", weeks: [] },
-  { id: 11, name: "Ноябрь", weeks: [] },
-  { id: 12, name: "Декабрь", weeks: [] },
-];
+import { createWeek } from "@/entities/weeks/api/week.api";
+import { fetchYearPlan } from "@/entities/year-plan/api/year-plan.api";
+import { useSession } from "next-auth/react";
+import { format } from "date-fns";
 
 export default function YearDashboardPage() {
-  const [yearData, setYearData] = useState(initialYearData);
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
+
+  const [yearData, setYearData] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonthId, setSelectedMonthId] = useState<number | null>(null);
-  const [newWeekLabel, setNewWeekLabel] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  const isLoading = false;
+  const isLoading = !yearData.length;
+
+  useEffect(() => {
+    if (userId) {
+      fetchYearPlan(userId).then((data) => setYearData(data[0].months));
+    }
+  }, [userId]);
 
   const handleOpenAddWeekModal = (monthId: number) => {
     setSelectedMonthId(monthId);
-    setNewWeekLabel("");
+    setStartDate("");
+    setEndDate("");
     setIsOpen(true);
   };
 
-  const handleAddWeek = () => {
+  const handleAddWeek = async () => {
     if (!selectedMonthId) return;
+
+    const newWeek = await createWeek({
+      monthPlanId: selectedMonthId,
+      startDate,
+      endDate,
+    });
 
     const updated = yearData.map((month) => {
       if (month.id === selectedMonthId) {
-        const newWeek = {
-          id: Date.now(),
-          label: newWeekLabel || "Новая неделя",
-        };
-        return { ...month, weeks: [...month.weeks, newWeek] };
+        return { ...month, weekPlans: [...month.weekPlans, newWeek] };
       }
       return month;
     });
@@ -58,6 +60,8 @@ export default function YearDashboardPage() {
     setYearData(updated);
     setIsOpen(false);
   };
+
+  const formatDate = (date: string) => format(new Date(date), "dd.MM.yyyy");
 
   return (
     <div className="space-y-6 p-4">
@@ -87,17 +91,13 @@ export default function YearDashboardPage() {
           </svg>
         </div>
       ) : (
-        // Grid: 1 колонка на мобильных, 12 колонок на lg
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Левая колонка: GoalsSection */}
           <div className="lg:col-span-4">
             <GoalsSection />
           </div>
 
-          {/* Правая колонка: Обзор года */}
           <div className="lg:col-span-8 flex flex-col min-w-0 min-h-0">
             <h2 className="text-xl font-bold mb-4">Обзор года</h2>
-            {/* Горизонтальный скролл-контейнер */}
             <div className="w-full overflow-x-auto">
               <div className="flex space-x-4 p-4 w-max">
                 {yearData.map((month) => (
@@ -106,15 +106,17 @@ export default function YearDashboardPage() {
                     className="w-[220px] border p-4 rounded-md flex-shrink-0"
                   >
                     <h3 className="font-semibold mb-2 text-center">
-                      {month.name}
+                      {month.month}
                     </h3>
                     <div className="space-y-1">
-                      {month.weeks.map((week) => (
+                      {month.weekPlans.map((week) => (
                         <Link
                           key={week.id}
                           href={`/dashboard/week?weekId=${week.id}`}
+                          className="block p-2 bg-gray-100 rounded hover:bg-gray-200"
                         >
-                          {week.label}
+                          {formatDate(week.startDate)} -{" "}
+                          {formatDate(week.endDate)}
                         </Link>
                       ))}
                     </div>
@@ -133,7 +135,6 @@ export default function YearDashboardPage() {
         </div>
       )}
 
-      {/* Модальное окно "Добавить неделю" */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
           <DialogHeader>
@@ -141,13 +142,20 @@ export default function YearDashboardPage() {
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <label className="block text-sm font-medium text-gray-700">
-              Диапазон (например 03.02-09.02)
+              Начало недели
             </label>
             <Input
-              type="text"
-              placeholder="03.02-09.02"
-              value={newWeekLabel}
-              onChange={(e) => setNewWeekLabel(e.target.value)}
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <label className="block text-sm font-medium text-gray-700">
+              Конец недели
+            </label>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
             />
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setIsOpen(false)}>

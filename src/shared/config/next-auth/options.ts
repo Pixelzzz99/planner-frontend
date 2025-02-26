@@ -4,6 +4,7 @@ import { JWT } from "next-auth/jwt";
 
 // import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { cookies } from "next/headers";
 
 export const authOptions = {
   providers: [
@@ -61,6 +62,19 @@ export const authOptions = {
 
   session: {
     strategy: "jwt" as SessionStrategy,
+    maxAge: 24 * 60 * 60, // 24 hours
+  },
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        // secure: process.env.NODE_ENV === "production",
+        maxAge: 24 * 60 * 60,
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

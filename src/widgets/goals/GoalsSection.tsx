@@ -15,63 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSession } from "next-auth/react";
-import { useQuery, QueryClient, useMutation } from "@tanstack/react-query";
-import {
-  createGoal,
-  deleteGoal,
-  fetchGoals,
-  updateGoal,
-} from "@/entities/goals/api/goal.api";
+import { useGoals } from "@/shared/hooks/useGoals";
 import { Goal } from "@/entities/goals/model/goal.dto";
 import { EditableText } from "@/shared/ui/EditableText";
 import { X } from "@mynaui/icons-react";
 
-const queryClient = new QueryClient();
-
 export function GoalsSection() {
-  const { data: session } = useSession();
-  const userId = session?.user?.id;
-
-  const {
-    data: goals,
-    isLoading,
-    error,
-  } = useQuery<Goal[]>({
-    queryKey: ["goals", userId],
-    queryFn: () => fetchGoals(userId!),
-    enabled: Boolean(userId),
-  });
-
+  const { goals, isLoading, error, createGoal, updateGoal, deleteGoal } =
+    useGoals();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal | null>(null);
   const [goalTitle, setGoalTitle] = useState("");
 
-  const createMutation = useMutation({
-    mutationFn: (title: string) => createGoal(userId!, title),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["goals", userId] });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data: { id: string; goal: Partial<Goal> }) =>
-      updateGoal(data.id, data.goal),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["goals", userId] }),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteGoal(id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["goals", userId] }),
-  });
-
   const handleSubmit = () => {
     if (currentGoal) {
-      updateMutation.mutate({ id: currentGoal.id, goal: { title: goalTitle } });
+      updateGoal({ id: currentGoal.id, goal: { title: goalTitle } });
     } else {
-      createMutation.mutate(goalTitle);
+      createGoal(goalTitle);
     }
     setIsDialogOpen(false);
     setGoalTitle("");
@@ -96,55 +56,84 @@ export function GoalsSection() {
 
       <div className="space-y-3">
         {goals?.map((goal) => (
-          <div
+          <GoalItem
             key={goal.id}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-md shadow-sm"
-          >
-            <div className="flex items-center space-x-2  gap-2">
-              <EditableText
-                text={goal.title}
-                onSave={(newText) =>
-                  updateMutation.mutate({
-                    id: goal.id,
-                    goal: { title: newText },
-                  })
-                }
-              />
-              <span className="ml-2 text-xs text-gray-500">
-                ({goal.status})
-              </span>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 items-center">
-              <Select
-                value={goal.status}
-                onValueChange={(value) =>
-                  updateMutation.mutate({
-                    ...goal,
-                    status: value as Goal["status"],
-                  })
-                }
-              >
-                <SelectTrigger className="w-24" size="sm">
-                  <SelectValue placeholder="Статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TODO">TODO</SelectItem>
-                  <SelectItem value="IN_PROGRESS">IN PROGRESS</SelectItem>
-                  <SelectItem value="DONE">DONE</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => deleteMutation.mutate(goal.id)}
-              >
-                <X />
-              </Button>
-            </div>
-          </div>
+            goal={goal}
+            onUpdate={(newText) =>
+              updateGoal({ id: goal.id, goal: { title: newText } })
+            }
+            onDelete={() => deleteGoal(goal.id)}
+            onStatusChange={(value) =>
+              updateGoal({
+                id: goal.id,
+                goal: { status: value as Goal["status"] },
+              })
+            }
+          />
         ))}
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {currentGoal ? "Редактировать цель" : "Новая цель"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <Input
+            value={goalTitle}
+            onChange={(e) => setGoalTitle(e.target.value)}
+            placeholder="Название цели"
+          />
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleSubmit}>
+              {currentGoal ? "Сохранить" : "Создать"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function GoalItem({
+  goal,
+  onUpdate,
+  onDelete,
+  onStatusChange,
+}: {
+  goal: Goal;
+  onUpdate: (newText: string) => void;
+  onDelete: () => void;
+  onStatusChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-md shadow-sm">
+      <div className="flex items-center space-x-2 gap-2">
+        <EditableText text={goal.title} onSave={onUpdate} />
+        <span className="ml-2 text-xs text-gray-500">({goal.status})</span>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 items-center">
+        <Select value={goal.status} onValueChange={onStatusChange}>
+          <SelectTrigger className="w-24 h-8 text-sm">
+            <SelectValue placeholder="Статус" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="TODO">TODO</SelectItem>
+            <SelectItem value="IN_PROGRESS">IN PROGRESS</SelectItem>
+            <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button size="sm" variant="destructive" onClick={onDelete}>
+          <X />
+        </Button>
       </div>
     </div>
   );

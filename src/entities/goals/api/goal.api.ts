@@ -12,9 +12,7 @@ export const fetchGoals = async (userId: string) => {
 };
 
 export const updateGoal = async (goalId: string, data: Partial<Goal>) => {
-  const response = await api.patch(`/goals/${goalId}`, {
-    data,
-  });
+  const response = await api.patch(`/goals/${goalId}`, data);
   return response.data;
 };
 
