@@ -17,10 +17,11 @@ import {
   updateCategory,
   deleteCategory,
 } from "@/entities/categories/api/category.api";
-import { TaskFormModal } from "@/components/TaskFormModal";
-import { CategoryFormModal } from "@/components/CategoryFormModal";
-import { TaskArchive } from "@/components/TaskArchive";
-import { TaskCategories } from "@/components/TaskCategories";
+import { TaskFormModal } from "@/entities/task/ui/TaskFormModal";
+import { CategoryFormModal } from "@/entities/categories/ui/CategoryFormModal";
+import { TaskArchive } from "@/entities/task/ui/TaskArchive";
+import { TaskCategories } from "@/entities/categories/ui/TaskCategories";
+import { WeekFocus } from "@/components/WeekFocus"; // Импортируем новый компонент
 
 // Условные дни недели
 const initialDays = [
@@ -259,108 +260,136 @@ export default function WeekPage() {
   };
 
   return (
-    <div className="p-4">
-      <div className="flex gap-2 items-center mb-4">
-        <Button
-          variant="outline"
-          onClick={() => router.push("/dashboard/year")}
-        >
-          <ArrowLeft />
-        </Button>
-        <h1 className="text-2xl font-bold">
-          Неделя: {formatDate(weekData.startDate)} -{" "}
-          {formatDate(weekData.endDate)}
-        </h1>
-      </div>
-      <div className="w-full overflow-x-auto">
-        <DragDropContext onDragEnd={onDragEnd}>
-          <div className="grid grid-flow-col auto-cols-max gap-4 min-w-min mb-8 p-2">
-            {days.map((day) => (
-              <Droppable key={day.id} droppableId={day.id}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`w-64 min-w-[16rem] p-2 border rounded-md flex-shrink-0 transition-colors ${
-                      snapshot.isDraggingOver ? "bg-blue-50" : "bg-white"
-                    }`}
-                  >
-                    <h2 className="font-semibold text-center mb-2">
-                      {day.label}
-                    </h2>
+    <div className="container mx-auto p-4">
+      <div className="grid grid-cols-1 gap-4">
+        {/* Заголовок */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/year")}
+          >
+            <ArrowLeft />
+          </Button>
+          <h1 className="text-xl md:text-2xl font-bold">
+            Неделя: {formatDate(weekData.startDate)} -{" "}
+            {formatDate(weekData.endDate)}
+          </h1>
+        </div>
 
-                    {day.tasks.map((task, index) => (
-                      <Draggable
-                        key={task.id}
-                        draggableId={task.id}
-                        index={index}
-                      >
-                        {(dragProvided, dragSnapshot) => (
-                          <div
-                            ref={dragProvided.innerRef}
-                            {...dragProvided.draggableProps}
-                            {...dragProvided.dragHandleProps}
-                            className={`p-2 mb-2 rounded-md bg-gray-100 transition-colors cursor-pointer ${
-                              dragSnapshot.isDragging ? "bg-gray-200" : ""
-                            }`}
-                            onClick={() => handleOpenEditTaskModal(task)}
-                          >
-                            <div className="text-sm font-semibold">
-                              {task.title}
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              {task.description}
-                            </div>
-                            <div className="text-xs mt-1">
-                              Статус: {task.done ? "Сделано" : "Не сделано"}
-                            </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 w-full"
-                      onClick={() => handleOpenAddTaskModal(day.id)}
-                    >
-                      + Задача
-                    </Button>
-                  </div>
-                )}
-              </Droppable>
-            ))}
+        {/* Основной контент */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* WeekFocus */}
+          <div className="lg:col-span-3">
+            <WeekFocus />
           </div>
-        </DragDropContext>
+
+          {/* Календарь задач */}
+          <div className="lg:col-span-9">
+            <div className="bg-white p-2 rounded-md shadow">
+              <DragDropContext onDragEnd={onDragEnd}>
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {days.map((day) => (
+                    <Droppable key={day.id} droppableId={day.id}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className={`flex-shrink-0 w-[280px] p-2 border rounded-md transition-colors flex flex-col ${
+                            snapshot.isDraggingOver ? "bg-blue-50" : "bg-white"
+                          }`}
+                        >
+                          <h2 className="font-semibold text-center mb-2">
+                            {day.label}
+                          </h2>
+
+                          <div className="space-y-2 flex-1">
+                            {day.tasks.map((task, index) => (
+                              <Draggable
+                                key={task.id}
+                                draggableId={task.id}
+                                index={index}
+                              >
+                                {(dragProvided, dragSnapshot) => (
+                                  <div
+                                    ref={dragProvided.innerRef}
+                                    {...dragProvided.draggableProps}
+                                    {...dragProvided.dragHandleProps}
+                                    className={`p-2 rounded-md bg-gray-100 transition-colors cursor-pointer ${
+                                      dragSnapshot.isDragging
+                                        ? "bg-gray-200"
+                                        : ""
+                                    }`}
+                                    onClick={() =>
+                                      handleOpenEditTaskModal(task)
+                                    }
+                                  >
+                                    <div className="text-sm font-semibold">
+                                      {task.title}
+                                    </div>
+                                    <div className="text-xs text-gray-600">
+                                      {task.description}
+                                    </div>
+                                    <div className="text-xs mt-1">
+                                      Статус:{" "}
+                                      {task.done ? "Сделано" : "Не сделано"}
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2 w-full"
+                            onClick={() => handleOpenAddTaskModal(day.id)}
+                          >
+                            + Задача
+                          </Button>
+                        </div>
+                      )}
+                    </Droppable>
+                  ))}
+                </div>
+              </DragDropContext>
+            </div>
+          </div>
+        </div>
+
+        {/* Нижняя секция */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <TaskArchive archivedTasks={archivedTasks} />
+          </div>
+          <div>
+            <TaskCategories
+              categories={categories}
+              onAddCategory={handleOpenAddCategoryModal}
+              onEditCategory={handleOpenEditCategoryModal}
+              onDeleteCategory={handleDeleteCategory}
+            />
+          </div>
+        </div>
+
+        {/* Модальные окна */}
+        <TaskFormModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          taskForm={taskForm}
+          setTaskForm={setTaskForm}
+          onSubmit={handleSubmitForm}
+          onArchive={handleArchiveTask}
+        />
+        <CategoryFormModal
+          isOpen={isCategoryModalOpen}
+          onClose={() => setIsCategoryModalOpen(false)}
+          categoryForm={categoryForm}
+          setCategoryForm={setCategoryForm}
+          onSubmit={handleSubmitCategoryForm}
+        />
       </div>
-
-      <TaskArchive archivedTasks={archivedTasks} />
-
-      <TaskCategories
-        categories={categories}
-        onAddCategory={handleOpenAddCategoryModal}
-        onEditCategory={handleOpenEditCategoryModal}
-        onDeleteCategory={handleDeleteCategory}
-      />
-
-      <TaskFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        taskForm={taskForm}
-        setTaskForm={setTaskForm}
-        onSubmit={handleSubmitForm}
-        onArchive={handleArchiveTask}
-      />
-
-      <CategoryFormModal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        categoryForm={categoryForm}
-        setCategoryForm={setCategoryForm}
-        onSubmit={handleSubmitCategoryForm}
-      />
     </div>
   );
 }

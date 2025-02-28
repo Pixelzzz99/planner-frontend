@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface EditableTextProps {
   text: string;
   onSave: (newText: string) => void;
+  className?: string;
 }
 
-export function EditableText({ text, onSave }: EditableTextProps) {
+export function EditableText({ text, onSave, className }: EditableTextProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(text);
 
@@ -24,17 +26,21 @@ export function EditableText({ text, onSave }: EditableTextProps) {
   };
 
   return (
-    <div onClick={() => setIsEditing(true)}>
+    <div
+      onClick={() => setIsEditing(true)}
+      className={cn("cursor-text", className)}
+    >
       {isEditing ? (
         <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
+          className="min-w-[200px]"
           autoFocus
         />
       ) : (
-        <span>{text}</span>
+        <span className="block py-1">{text}</span>
       )}
     </div>
   );
