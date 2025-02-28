@@ -2,14 +2,9 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { format } from "date-fns";
 import {
   createCategory,
@@ -17,11 +12,12 @@ import {
   updateCategory,
   deleteCategory,
 } from "@/entities/categories/api/category.api";
-import { TaskFormModal } from "@/entities/task/ui/TaskFormModal";
+import { TaskSheet } from "@/entities/task/ui/TaskSheet";
 import { CategoryFormModal } from "@/entities/categories/ui/CategoryFormModal";
 import { TaskArchive } from "@/entities/task/ui/TaskArchive";
 import { TaskCategories } from "@/entities/categories/ui/TaskCategories";
-import { WeekFocus } from "@/components/WeekFocus"; // Импортируем новый компонент
+import { WeekFocus } from "@/components/WeekFocus";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 // Условные дни недели
 const initialDays = [
@@ -56,6 +52,27 @@ const initialTasks = [
     description: "Описание задачи 3",
     done: true,
     dayId: "tue",
+  },
+  {
+    id: "task-4",
+    title: "Задача #2",
+    description: "Описание задачи 2",
+    done: false,
+    dayId: "mon",
+  },
+  {
+    id: "task-5",
+    title: "Задача #2",
+    description: "Описание задачи 2",
+    done: false,
+    dayId: "mon",
+  },
+  {
+    id: "task-6",
+    title: "Задача #2",
+    description: "Описание задачи 2",
+    done: false,
+    dayId: "mon",
   },
 ];
 
@@ -223,7 +240,6 @@ export default function WeekPage() {
 
     setDays(updatedDays);
   };
-
   const formatDate = (date: string) => format(new Date(date), "dd.MM.yyyy");
 
   const handleOpenAddCategoryModal = () => {
@@ -260,49 +276,68 @@ export default function WeekPage() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="grid grid-cols-1 gap-4">
-        {/* Заголовок */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push("/dashboard/year")}
-          >
-            <ArrowLeft />
-          </Button>
-          <h1 className="text-xl md:text-2xl font-bold">
-            Неделя: {formatDate(weekData.startDate)} -{" "}
-            {formatDate(weekData.endDate)}
-          </h1>
+    <div className="min-h-screen bg-[#F7F7F7] dark:bg-gray-900">
+      <div className="container mx-auto p-6">
+        {/* Заголовок в стиле Notion */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              className="hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-2 h-10 w-10"
+              onClick={() => router.push("/dashboard/year")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+              {formatDate(weekData.startDate)} - {formatDate(weekData.endDate)}
+            </h1>
+          </div>
+          <ThemeToggle />
         </div>
 
         {/* Основной контент */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* WeekFocus */}
-          <div className="lg:col-span-3">
-            <WeekFocus />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Боковая панель */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <WeekFocus />
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <TaskCategories
+                categories={categories}
+                onAddCategory={handleOpenAddCategoryModal}
+                onEditCategory={handleOpenEditCategoryModal}
+                onDeleteCategory={handleDeleteCategory}
+              />
+            </div>
           </div>
 
           {/* Календарь задач */}
           <div className="lg:col-span-9">
-            <div className="bg-white p-2 rounded-md shadow">
-              <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex gap-4 overflow-x-auto pb-2">
-                  {days.map((day) => (
-                    <Droppable key={day.id} droppableId={day.id}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`flex-shrink-0 w-[280px] p-2 border rounded-md transition-colors flex flex-col ${
-                            snapshot.isDraggingOver ? "bg-blue-50" : "bg-white"
-                          }`}
-                        >
-                          <h2 className="font-semibold text-center mb-2">
+            <DragDropContext onDragEnd={onDragEnd}>
+              <div className="flex items-start gap-4 overflow-x-auto pb-4">
+                {days.map((day) => (
+                  <Droppable key={day.id} droppableId={day.id}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`flex-shrink-0 w-[300px] bg-white rounded-xl shadow-sm border border-gray-200 
+                          ${
+                            snapshot.isDraggingOver ? "bg-blue-50" : ""
+                          } align-self-start`}
+                      >
+                        {/* Заголовок дня */}
+                        <div className="p-4 border-b border-gray-200">
+                          <h2 className="font-semibold text-gray-700 text-center">
                             {day.label}
                           </h2>
+                        </div>
 
-                          <div className="space-y-2 flex-1">
+                        {/* Контейнер для задач - теперь без фиксированной высоты и скролла */}
+                        <div className="p-3">
+                          <div className="space-y-2">
                             {day.tasks.map((task, index) => (
                               <Draggable
                                 key={task.id}
@@ -314,24 +349,36 @@ export default function WeekPage() {
                                     ref={dragProvided.innerRef}
                                     {...dragProvided.draggableProps}
                                     {...dragProvided.dragHandleProps}
-                                    className={`p-2 rounded-md bg-gray-100 transition-colors cursor-pointer ${
-                                      dragSnapshot.isDragging
-                                        ? "bg-gray-200"
-                                        : ""
-                                    }`}
+                                    className={`p-3 rounded-lg hover:bg-gray-50 border border-gray-200
+                                      ${
+                                        dragSnapshot.isDragging
+                                          ? "bg-blue-50 shadow-lg"
+                                          : "bg-white"
+                                      }
+                                      ${task.done ? "opacity-60" : ""}`}
                                     onClick={() =>
                                       handleOpenEditTaskModal(task)
                                     }
                                   >
-                                    <div className="text-sm font-semibold">
+                                    <h3 className="font-medium text-gray-800 mb-1">
                                       {task.title}
-                                    </div>
-                                    <div className="text-xs text-gray-600">
-                                      {task.description}
-                                    </div>
-                                    <div className="text-xs mt-1">
-                                      Статус:{" "}
-                                      {task.done ? "Сделано" : "Не сделано"}
+                                    </h3>
+                                    {task.description && (
+                                      <p className="text-sm text-gray-600 line-clamp-2">
+                                        {task.description}
+                                      </p>
+                                    )}
+                                    <div className="mt-2 flex items-center gap-2">
+                                      <span
+                                        className={`w-2 h-2 rounded-full ${
+                                          task.done
+                                            ? "bg-green-500"
+                                            : "bg-gray-300"
+                                        }`}
+                                      />
+                                      <span className="text-xs text-gray-500">
+                                        {task.done ? "Завершено" : "В процессе"}
+                                      </span>
                                     </div>
                                   </div>
                                 )}
@@ -339,42 +386,35 @@ export default function WeekPage() {
                             ))}
                             {provided.placeholder}
                           </div>
+                        </div>
 
+                        {/* Кнопка добавления задачи */}
+                        <div className="p-3 border-t border-gray-200">
                           <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-2 w-full"
+                            variant="ghost"
+                            className="w-full justify-start text-gray-600 hover:text-gray-900"
                             onClick={() => handleOpenAddTaskModal(day.id)}
                           >
-                            + Задача
+                            <Plus className="h-4 w-4 mr-2" />
+                            Добавить задачу
                           </Button>
                         </div>
-                      )}
-                    </Droppable>
-                  ))}
-                </div>
-              </DragDropContext>
-            </div>
+                      </div>
+                    )}
+                  </Droppable>
+                ))}
+              </div>
+            </DragDropContext>
           </div>
         </div>
 
-        {/* Нижняя секция */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <TaskArchive archivedTasks={archivedTasks} />
-          </div>
-          <div>
-            <TaskCategories
-              categories={categories}
-              onAddCategory={handleOpenAddCategoryModal}
-              onEditCategory={handleOpenEditCategoryModal}
-              onDeleteCategory={handleDeleteCategory}
-            />
-          </div>
+        {/* Архив задач */}
+        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <TaskArchive archivedTasks={archivedTasks} />
         </div>
 
         {/* Модальные окна */}
-        <TaskFormModal
+        <TaskSheet
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           taskForm={taskForm}

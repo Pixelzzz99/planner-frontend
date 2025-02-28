@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </nav>
       </aside> */}
 
-      <main className="flex-1 p-4">{children}</main>
+      <main className="flex-1">{children}</main>
     </div>
   );
 }
