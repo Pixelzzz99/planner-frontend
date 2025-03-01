@@ -1,12 +1,7 @@
 import { api } from "@/shared/api/api";
-
-interface CreateWeekDTO {
-  monthPlanId: number;
-  startDate: string;
-  endDate: string;
-}
+import { CreateWeekDTO, Week } from "../model/types";
 
 export async function createWeek(data: CreateWeekDTO) {
-  const response = await api.post("/weeks", data);
+  const response = await api.post<Week>("/weeks", data);
   return response.data;
 }

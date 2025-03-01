@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,14 +16,15 @@ import { createWeek } from "@/entities/weeks/api/week.api";
 import { fetchYearPlan } from "@/entities/year-plan/api/year-plan.api";
 import { useSession } from "next-auth/react";
 import { Loader } from "@/shared/ui/loader";
+import { MonthsPlan } from "@/entities/year-plan/model/year-plan.model";
 
 export default function YearDashboardPage() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  const [yearData, setYearData] = useState([]);
+  const [yearData, setYearData] = useState<MonthsPlan[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedMonthId, setSelectedMonthId] = useState<number | null>(null);
+  const [selectedMonthId, setSelectedMonthId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -36,7 +36,7 @@ export default function YearDashboardPage() {
     }
   }, [userId]);
 
-  const handleOpenAddWeekModal = (monthId: number) => {
+  const handleOpenAddWeekModal = (monthId: string) => {
     setSelectedMonthId(monthId);
     setStartDate("");
     setEndDate("");
@@ -63,8 +63,6 @@ export default function YearDashboardPage() {
     setIsOpen(false);
   };
 
-  const formatDate = (date: string) => format(new Date(date), "dd.MM.yyyy");
-
   return (
     <div className="max-w-[1600px] mx-auto px-4 py-6">
       <YearPageHeader />
@@ -80,8 +78,8 @@ export default function YearDashboardPage() {
           </div>
 
           <div className="lg:col-span-9">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+            <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
+              <h2 className="text-2xl font-semibold text-foreground mb-6">
                 Обзор года
               </h2>
               <div className="overflow-x-auto">
@@ -103,13 +101,13 @@ export default function YearDashboardPage() {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
+            <DialogTitle className="text-xl font-semibold text-foreground">
               Добавить неделю
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Начало недели
               </label>
               <Input
@@ -120,7 +118,7 @@ export default function YearDashboardPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Конец недели
               </label>
               <Input

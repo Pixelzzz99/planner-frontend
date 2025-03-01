@@ -6,10 +6,10 @@ import { getMonthName } from "@/shared/lib/date/month-formatter";
 
 interface MonthCardProps {
   month: {
-    id: number;
-    month: string;
+    id: string;
+    month: number;
     weekPlans: Array<{
-      id: number;
+      id: string;
       startDate: string;
       endDate: string;
     }>;
@@ -23,9 +23,9 @@ export const MonthCard = ({ month, onAddWeek }: MonthCardProps) => {
 
   return (
     <div className="w-[280px] flex-shrink-0">
-      <div className="bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-        <div className="border-b border-gray-200 p-4">
-          <h3 className="text-lg font-semibold text-gray-800 text-center">
+      <div className="bg-card rounded-lg border border-border hover:border-border/80 transition-colors">
+        <div className="border-b border-border p-4">
+          <h3 className="text-lg font-semibold text-foreground text-center">
             {getMonthName(month.month)}
           </h3>
         </div>
@@ -35,9 +35,9 @@ export const MonthCard = ({ month, onAddWeek }: MonthCardProps) => {
               <Link
                 key={week.id}
                 href={`/dashboard/week?weekId=${week.id}`}
-                className="block p-3 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
+                className="block p-3 rounded-md bg-muted hover:bg-muted/80 transition-colors"
               >
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-foreground">
                   {formatDate(week.startDate)} - {formatDate(week.endDate)}
                 </span>
               </Link>
@@ -45,7 +45,7 @@ export const MonthCard = ({ month, onAddWeek }: MonthCardProps) => {
           </div>
           <Button
             variant="ghost"
-            className="w-full mt-4 text-gray-600 hover:text-gray-900"
+            className="w-full mt-4 text-muted-foreground hover:text-foreground"
             onClick={onAddWeek}
           >
             + Добавить неделю

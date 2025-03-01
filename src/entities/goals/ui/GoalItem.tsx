@@ -11,9 +11,10 @@ import {
 import { Trash2 } from "lucide-react";
 
 const statusStyles = {
-  TODO: "bg-gray-100 text-gray-700",
-  IN_PROGRESS: "bg-blue-100 text-blue-700",
-  COMPLETED: "bg-green-100 text-green-700",
+  TODO: "bg-secondary text-secondary-foreground",
+  IN_PROGRESS: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
+  COMPLETED:
+    "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
 };
 
 const statusLabels = {
@@ -36,12 +37,12 @@ export function GoalItem({
   onStatusChange,
 }: GoalItemProps) {
   return (
-    <div className="group flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+    <div className="group flex items-center gap-4 p-3 hover:bg-accent/50 rounded-lg transition-colors">
       <div className="flex-1 flex items-center gap-3">
         <EditableText
           text={goal.title}
           onSave={onUpdate}
-          className="text-gray-800 hover:bg-gray-100 px-2 py-1 rounded-md flex-1"
+          className="text-foreground hover:bg-accent px-2 py-1 rounded-md flex-1"
         />
       </div>
 
@@ -67,7 +68,7 @@ export function GoalItem({
           variant="ghost"
           size="sm"
           onClick={onDelete}
-          className="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full p-2 h-8 w-8"
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full p-2 h-8 w-8"
         >
           <Trash2 size={16} />
         </Button>

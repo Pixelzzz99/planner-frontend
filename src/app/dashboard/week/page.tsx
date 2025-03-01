@@ -276,19 +276,19 @@ export default function WeekPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7] dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6">
         {/* Заголовок в стиле Notion */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              className="hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-2 h-10 w-10"
+              className="hover:bg-accent rounded-full p-2 h-10 w-10"
               onClick={() => router.push("/dashboard/year")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+            <h1 className="text-3xl font-bold text-foreground">
               {formatDate(weekData.startDate)} - {formatDate(weekData.endDate)}
             </h1>
           </div>
@@ -299,11 +299,11 @@ export default function WeekPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Боковая панель */}
           <div className="lg:col-span-3 space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
               <WeekFocus weekPlanId={weekId ? weekId : ""} />
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
               <TaskCategories
                 categories={categories}
                 onAddCategory={handleOpenAddCategoryModal}
@@ -323,9 +323,9 @@ export default function WeekPage() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`flex-shrink-0 w-[300px] bg-white rounded-xl shadow-sm border border-gray-200 
+                        className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border 
                           ${
-                            snapshot.isDraggingOver ? "bg-blue-50" : ""
+                            snapshot.isDraggingOver ? "bg-accent" : ""
                           } align-self-start`}
                       >
                         {/* Заголовок дня */}
@@ -409,7 +409,7 @@ export default function WeekPage() {
         </div>
 
         {/* Архив задач */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="mt-8 bg-card rounded-xl shadow-sm border border-border p-6">
           <TaskArchive archivedTasks={archivedTasks} />
         </div>
 

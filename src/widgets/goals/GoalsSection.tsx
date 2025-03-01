@@ -39,15 +39,15 @@ export function GoalsSection() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div className="p-4 p-4 border-b border-gray-100">
+    <div className="bg-card rounded-xl border border-border shadow-sm">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-800 px-4">Цели</h2>
+          <h2 className="text-xl font-semibold text-foreground px-4">Цели</h2>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsDialogOpen(true)}
-            className="hover:bg-gray-100 gap-2"
+            className="hover:bg-accent gap-2"
           >
             <Plus size={16} />
             Создать цель
@@ -55,7 +55,7 @@ export function GoalsSection() {
         </div>
       </div>
 
-      <div className="px-2 py-2 divide-y divide-gray-50">
+      <div className="px-2 py-2 divide-y divide-border">
         {goals?.map((goal) => (
           <GoalItem
             key={goal.id}
