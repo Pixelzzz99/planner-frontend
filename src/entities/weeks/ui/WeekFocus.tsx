@@ -1,26 +1,28 @@
-import { useState } from "react";
 import { EditableText } from "@/shared/ui/EditableText";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useWeekFocuses } from "../hooks/useWeekFocuses";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export function WeekFocus() {
-  const [focuses, setFocuses] = useState([
-    { id: "focus-1", text: "Фокус #1" },
-    { id: "focus-2", text: "Фокус #2" },
-  ]);
+interface WeekFocusProps {
+  weekPlanId: string;
+}
 
-  const handleSaveFocus = (id: string, newText: string) => {
-    setFocuses((prev) =>
-      prev.map((focus) =>
-        focus.id === id ? { ...focus, text: newText } : focus
-      )
-    );
+export function WeekFocus({ weekPlanId }: WeekFocusProps) {
+  const { focuses, isLoading, createFocus, updateFocus } =
+    useWeekFocuses(weekPlanId);
+
+  const handleSaveFocus = (id: number, newText: string) => {
+    updateFocus({ id, data: { title: newText } });
   };
 
   const handleAddFocus = () => {
-    const newFocus = { id: `focus-${Date.now()}`, text: "Новый фокус" };
-    setFocuses((prev) => [...prev, newFocus]);
+    createFocus({ weekPlanId, title: "Новый фокус" });
   };
+
+  if (isLoading) {
+    return <Skeleton className="w-full h-[200px]" />;
+  }
 
   return (
     <div className="w-full p-4 border rounded-md bg-white shadow space-y-4">
@@ -29,7 +31,7 @@ export function WeekFocus() {
         {focuses.map((focus) => (
           <EditableText
             key={focus.id}
-            text={focus.text}
+            text={focus.title}
             onSave={(newText) => handleSaveFocus(focus.id, newText)}
           />
         ))}

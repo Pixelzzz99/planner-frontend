@@ -16,7 +16,7 @@ import { TaskSheet } from "@/entities/task/ui/TaskSheet";
 import { CategoryFormModal } from "@/entities/categories/ui/CategoryFormModal";
 import { TaskArchive } from "@/entities/task/ui/TaskArchive";
 import { TaskCategories } from "@/entities/categories/ui/TaskCategories";
-import { WeekFocus } from "@/components/WeekFocus";
+import { WeekFocus } from "@/entities/weeks/ui/WeekFocus";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 // Условные дни недели
@@ -79,7 +79,7 @@ const initialTasks = [
 export default function WeekPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const weekId = searchParams.get("weekId");
+  const weekId = searchParams?.get("weekId") ?? null;
 
   const [weekData, setWeekData] = useState({
     startDate: "2023-10-01",
@@ -300,7 +300,7 @@ export default function WeekPage() {
           {/* Боковая панель */}
           <div className="lg:col-span-3 space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <WeekFocus />
+              <WeekFocus weekPlanId={weekId ? weekId : ""} />
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
