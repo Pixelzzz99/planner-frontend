@@ -12,7 +12,7 @@ import {
 import { YearPageHeader } from "@/widgets/year/YearPageHeader";
 import { MonthCard } from "@/entities/month/ui/MonthCard";
 import { GoalsSection } from "@/widgets/goals/GoalsSection";
-import { createWeek } from "@/entities/weeks/api/week.api";
+import { weekApi } from "@/entities/weeks/api/week.api";
 import { fetchYearPlan } from "@/entities/year-plan/api/year-plan.api";
 import { useSession } from "next-auth/react";
 import { Loader } from "@/shared/ui/loader";
@@ -46,7 +46,7 @@ export default function YearDashboardPage() {
   const handleAddWeek = async () => {
     if (!selectedMonthId) return;
 
-    const newWeek = await createWeek({
+    const newWeek = await weekApi.create({
       monthPlanId: selectedMonthId,
       startDate,
       endDate,
@@ -61,6 +61,17 @@ export default function YearDashboardPage() {
 
     setYearData(updated);
     setIsOpen(false);
+  };
+
+  const handleDeleteWeek = async (weekId: string) => {
+    await weekApi.delete(weekId);
+    const updated = yearData.map((month) => {
+      return {
+        ...month,
+        weekPlans: month.weekPlans.filter((week) => week.id !== weekId),
+      };
+    });
+    setYearData(updated);
   };
 
   return (
@@ -89,6 +100,7 @@ export default function YearDashboardPage() {
                       key={month.id}
                       month={month}
                       onAddWeek={() => handleOpenAddWeekModal(month.id)}
+                      onDeleteWeek={handleDeleteWeek}
                     />
                   ))}
                 </div>
