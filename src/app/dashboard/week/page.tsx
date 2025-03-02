@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus } from "lucide-react";
-import { format } from "date-fns";
 import {
   createCategory,
   getUserCategories,
@@ -18,96 +17,138 @@ import { TaskArchive } from "@/entities/task/ui/TaskArchive";
 import { TaskCategories } from "@/entities/categories/ui/TaskCategories";
 import { WeekFocus } from "@/entities/weeks/ui/WeekFocus";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import {
+  useTasksByWeek,
+  useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
+} from "@/entities/task/hooks/use-task";
+import { Task, CreateTaskDTO } from "@/entities/task/models/task.model";
 
-// Условные дни недели
-const initialDays = [
-  { id: "mon", label: "Пн", tasks: [] },
-  { id: "tue", label: "Вт", tasks: [] },
-  { id: "wed", label: "Ср", tasks: [] },
-  { id: "thu", label: "Чт", tasks: [] },
-  { id: "fri", label: "Пт", tasks: [] },
-  { id: "sat", label: "Сб", tasks: [] },
-  { id: "sun", label: "Вс", tasks: [] },
-];
-
-// Пример начальных задач
-const initialTasks = [
-  {
-    id: "task-1",
-    title: "Задача #1",
-    description: "Описание задачи 1",
-    done: false,
-    dayId: "mon",
-  },
-  {
-    id: "task-2",
-    title: "Задача #2",
-    description: "Описание задачи 2",
-    done: false,
-    dayId: "mon",
-  },
-  {
-    id: "task-3",
-    title: "Задача #3",
-    description: "Описание задачи 3",
-    done: true,
-    dayId: "tue",
-  },
-  {
-    id: "task-4",
-    title: "Задача #2",
-    description: "Описание задачи 2",
-    done: false,
-    dayId: "mon",
-  },
-  {
-    id: "task-5",
-    title: "Задача #2",
-    description: "Описание задачи 2",
-    done: false,
-    dayId: "mon",
-  },
-  {
-    id: "task-6",
-    title: "Задача #2",
-    description: "Описание задачи 2",
-    done: false,
-    dayId: "mon",
-  },
+const DAYS = [
+  { id: 1, label: "Пн" },
+  { id: 2, label: "Вт" },
+  { id: 3, label: "Ср" },
+  { id: 4, label: "Чт" },
+  { id: 5, label: "Пт" },
+  { id: 6, label: "Сб" },
+  { id: 7, label: "Вс" },
 ];
 
 export default function WeekPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const weekId = searchParams?.get("weekId") ?? null;
+  const weekId = searchParams?.get("weekId") ?? "";
 
-  const [weekData, setWeekData] = useState({
-    startDate: "2023-10-01",
-    endDate: "2023-10-07",
-  });
+  const { data: serverTasks = [], isLoading: isTasksLoading } =
+    useTasksByWeek(weekId);
+  const [localTasks, setLocalTasks] = useState<Task[]>([]);
 
-  const [days, setDays] = useState(() => {
-    const clonedDays = structuredClone(initialDays) as typeof initialDays;
-    for (const task of initialTasks) {
-      const day = clonedDays.find((d) => d.id === task.dayId);
-      if (day) {
-        day.tasks.push(task);
-      }
-    }
-    return clonedDays;
-  });
+  // Синхронизируем локальные задачи с серверными при их изменении
+  useEffect(() => {
+    setLocalTasks(serverTasks);
+  }, [serverTasks]);
 
-  const [archivedTasks, setArchivedTasks] = useState<any[]>([]);
+  const { mutate: createTask } = useCreateTask();
+  const { mutate: updateTask } = useUpdateTask();
+  const { mutate: deleteTask } = useDeleteTask();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [taskForm, setTaskForm] = useState({
-    id: "",
-    dayId: "",
+  const [taskForm, setTaskForm] = useState<
+    Partial<CreateTaskDTO> & { id?: string }
+  >({
     title: "",
     description: "",
-    done: false,
+    priority: "MEDIUM",
+    duration: 0,
+    status: "TODO",
+    categoryId: "",
+    day: 1,
+    date: new Date().toISOString(),
   });
 
-  const [categories, setCategories] = useState([]);
+  const tasksByDay = DAYS.map((day) => ({
+    ...day,
+    tasks: localTasks.filter((task) => task.day === day.id),
+  }));
+
+  const handleOpenAddTaskModal = (day: number) => {
+    setTaskForm({
+      title: "",
+      description: "",
+      priority: "MEDIUM",
+      duration: 30,
+      status: "TODO",
+      categoryId: "",
+      day,
+      date: new Date().toISOString(),
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditTaskModal = (task: Task) => {
+    setTaskForm({
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      duration: task.duration,
+      status: task.status,
+      categoryId: task.categoryId,
+      day: task.day,
+      date: task.date,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmitForm = () => {
+    if ("id" in taskForm) {
+      // Editing existing task
+      updateTask({
+        taskId: taskForm.id!,
+        weekId,
+        data: taskForm as Partial<CreateTaskDTO>,
+      });
+    } else {
+      // Creating new task
+      createTask({
+        weekId,
+        data: taskForm as CreateTaskDTO,
+      });
+    }
+    setIsModalOpen(false);
+  };
+
+  const onDragEnd = (result: any) => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    const sourceDay = parseInt(source.droppableId);
+    const destinationDay = parseInt(destination.droppableId);
+
+    const task = tasksByDay.find((d) => d.id === sourceDay)?.tasks[
+      source.index
+    ];
+
+    if (task) {
+      // Немедленно обновляем UI
+      setLocalTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, day: destinationDay } : t))
+      );
+
+      // Отправляем изменения на сервер
+      updateTask({
+        taskId: task.id,
+        weekId,
+        data: {
+          day: destinationDay,
+        },
+      });
+    }
+  };
+
+  const [categories, setCategories] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [categoryForm, setCategoryForm] = useState({ id: "", name: "" });
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
@@ -116,131 +157,6 @@ export default function WeekPage() {
   useEffect(() => {
     getUserCategories(userId).then(setCategories);
   }, [userId]);
-
-  const handleOpenAddTaskModal = (dayId: string) => {
-    setTaskForm({
-      id: "",
-      dayId,
-      title: "",
-      description: "",
-      done: false,
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEditTaskModal = (task: any) => {
-    setTaskForm({
-      id: task.id,
-      dayId: task.dayId,
-      title: task.title,
-      description: task.description,
-      done: task.done,
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleSubmitForm = () => {
-    if (!taskForm.id) {
-      const newTask = {
-        ...taskForm,
-        id: "task-" + Date.now(),
-      };
-
-      setDays((prev) =>
-        prev.map((day) => {
-          if (day.id === newTask.dayId) {
-            return { ...day, tasks: [...day.tasks, newTask] };
-          }
-          return day;
-        })
-      );
-    } else {
-      const updatedDays = structuredClone(days) as typeof days;
-
-      for (const day of updatedDays) {
-        const idx = day.tasks.findIndex((t) => t.id === taskForm.id);
-        if (idx !== -1) {
-          day.tasks.splice(idx, 1);
-          break;
-        }
-      }
-
-      const newTask = {
-        id: taskForm.id,
-        title: taskForm.title,
-        description: taskForm.description,
-        done: taskForm.done,
-        dayId: taskForm.dayId,
-      };
-
-      const targetDay = updatedDays.find((d) => d.id === newTask.dayId);
-      if (targetDay) {
-        targetDay.tasks.push(newTask);
-      }
-
-      setDays(updatedDays);
-    }
-
-    setIsModalOpen(false);
-  };
-
-  const handleArchiveTask = () => {
-    if (!taskForm.id) {
-      const newArchived = {
-        id: "task-" + Date.now(),
-        title: taskForm.title || "Без названия",
-        description: taskForm.description,
-        done: taskForm.done,
-      };
-      setArchivedTasks((prev) => [...prev, newArchived]);
-    } else {
-      const updatedDays = structuredClone(days) as typeof days;
-
-      for (const day of updatedDays) {
-        const idx = day.tasks.findIndex((t) => t.id === taskForm.id);
-        if (idx !== -1) {
-          const [foundTask] = day.tasks.splice(idx, 1);
-          setArchivedTasks((prev) => [
-            ...prev,
-            {
-              id: foundTask.id,
-              title: foundTask.title,
-              description: foundTask.description,
-              done: foundTask.done,
-            },
-          ]);
-          break;
-        }
-      }
-      setDays(updatedDays);
-    }
-
-    setIsModalOpen(false);
-  };
-
-  const onDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
-    if (!destination) return;
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
-      return;
-    }
-
-    const updatedDays = structuredClone(days) as typeof days;
-
-    const sourceDay = updatedDays.find((d) => d.id === source.droppableId);
-    const destDay = updatedDays.find((d) => d.id === destination.droppableId);
-    if (!sourceDay || !destDay) return;
-
-    const [movedTask] = sourceDay.tasks.splice(source.index, 1);
-    destDay.tasks.splice(destination.index, 0, movedTask);
-    movedTask.dayId = destDay.id;
-
-    setDays(updatedDays);
-  };
-  const formatDate = (date: string) => format(new Date(date), "dd.MM.yyyy");
 
   const handleOpenAddCategoryModal = () => {
     setCategoryForm({ id: "", name: "" });
@@ -289,7 +205,7 @@ export default function WeekPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-3xl font-bold text-foreground">
-              {formatDate(weekData.startDate)} - {formatDate(weekData.endDate)}
+              {weekId ? `Неделя ${weekId}` : "Новая неделя"}
             </h1>
           </div>
           <ThemeToggle />
@@ -317,16 +233,14 @@ export default function WeekPage() {
           <div className="lg:col-span-9">
             <DragDropContext onDragEnd={onDragEnd}>
               <div className="flex items-start gap-4 overflow-x-auto pb-4">
-                {days.map((day) => (
-                  <Droppable key={day.id} droppableId={day.id}>
+                {tasksByDay.map((day) => (
+                  <Droppable key={day.id} droppableId={String(day.id)}>
                     {(provided, snapshot) => (
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                         className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border 
-                          ${
-                            snapshot.isDraggingOver ? "bg-accent" : ""
-                          } align-self-start`}
+                          ${snapshot.isDraggingOver ? "bg-accent" : ""}`}
                       >
                         {/* Заголовок дня */}
                         <div className="p-4 border-b border-gray-200">
@@ -355,7 +269,11 @@ export default function WeekPage() {
                                           ? "bg-blue-50 shadow-lg"
                                           : "bg-white"
                                       }
-                                      ${task.done ? "opacity-60" : ""}`}
+                                      ${
+                                        task.status === "DONE"
+                                          ? "opacity-60"
+                                          : ""
+                                      }`}
                                     onClick={() =>
                                       handleOpenEditTaskModal(task)
                                     }
@@ -371,13 +289,15 @@ export default function WeekPage() {
                                     <div className="mt-2 flex items-center gap-2">
                                       <span
                                         className={`w-2 h-2 rounded-full ${
-                                          task.done
+                                          task.status === "DONE"
                                             ? "bg-green-500"
                                             : "bg-gray-300"
                                         }`}
                                       />
                                       <span className="text-xs text-gray-500">
-                                        {task.done ? "Завершено" : "В процессе"}
+                                        {task.status === "DONE"
+                                          ? "Завершено"
+                                          : "В процессе"}
                                       </span>
                                     </div>
                                   </div>
@@ -409,9 +329,9 @@ export default function WeekPage() {
         </div>
 
         {/* Архив задач */}
-        <div className="mt-8 bg-card rounded-xl shadow-sm border border-border p-6">
+        {/* <div className="mt-8 bg-card rounded-xl shadow-sm border border-border p-6">
           <TaskArchive archivedTasks={archivedTasks} />
-        </div>
+        </div> */}
 
         {/* Модальные окна */}
         <TaskSheet
@@ -420,7 +340,7 @@ export default function WeekPage() {
           taskForm={taskForm}
           setTaskForm={setTaskForm}
           onSubmit={handleSubmitForm}
-          onArchive={handleArchiveTask}
+          onArchive={() => {}}
         />
         <CategoryFormModal
           isOpen={isCategoryModalOpen}
