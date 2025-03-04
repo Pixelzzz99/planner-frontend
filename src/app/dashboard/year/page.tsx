@@ -17,6 +17,7 @@ import { fetchYearPlan } from "@/entities/year-plan/api/year-plan.api";
 import { useSession } from "next-auth/react";
 import { Loader } from "@/shared/ui/loader";
 import { MonthsPlan } from "@/entities/year-plan/model/year-plan.model";
+import { TaskArchive } from "@/entities/task/ui/TaskArchive";
 
 export default function YearDashboardPage() {
   const { data: session } = useSession();
@@ -27,6 +28,7 @@ export default function YearDashboardPage() {
   const [selectedMonthId, setSelectedMonthId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [archivedTasks] = useState([]);
 
   const isLoading = !yearData.length;
 
@@ -81,33 +83,39 @@ export default function YearDashboardPage() {
       {isLoading ? (
         <Loader />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-3">
-            <div className="sticky top-6">
-              <GoalsSection />
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+            <div className="lg:col-span-3">
+              <div className="sticky top-6">
+                <GoalsSection />
+              </div>
             </div>
-          </div>
 
-          <div className="lg:col-span-9">
-            <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
-              <h2 className="text-2xl font-semibold text-foreground mb-6">
-                Обзор года
-              </h2>
-              <div className="overflow-x-auto">
-                <div className="flex flex-nowrap gap-6 pb-4">
-                  {yearData.map((month) => (
-                    <MonthCard
-                      key={month.id}
-                      month={month}
-                      onAddWeek={() => handleOpenAddWeekModal(month.id)}
-                      onDeleteWeek={handleDeleteWeek}
-                    />
-                  ))}
+            <div className="lg:col-span-9">
+              <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
+                <h2 className="text-2xl font-semibold text-foreground mb-6">
+                  Обзор года
+                </h2>
+                <div className="overflow-x-auto">
+                  <div className="flex flex-nowrap gap-6 pb-4">
+                    {yearData.map((month) => (
+                      <MonthCard
+                        key={month.id}
+                        month={month}
+                        onAddWeek={() => handleOpenAddWeekModal(month.id)}
+                        onDeleteWeek={handleDeleteWeek}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+
+          <div className="mt-8">
+            <TaskArchive archivedTasks={archivedTasks} />
+          </div>
+        </>
       )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

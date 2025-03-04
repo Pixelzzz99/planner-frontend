@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +59,7 @@ export default function RegisterPage() {
         </div>
 
         <Button onClick={handleRegister} className="w-full">
-          Зарегистрироваться"
+          Зарегистрироваться
         </Button>
       </div>
     </div>

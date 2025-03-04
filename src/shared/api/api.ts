@@ -1,15 +1,41 @@
 import axios from "axios";
-import { getSession } from "next-auth/react";
+import { signOut, getSession } from "next-auth/react";
 
 export const api = axios.create({
-  baseURL: "http://localhost:4000",
-  // withCredentials: true,
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
-api.interceptors.request.use(async (config) => {
-  const session = await getSession();
-  if (session?.user?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.user.accessToken}`;
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      const session = await getSession();
+      const token = session?.user?.accessToken;
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    } catch (error) {
+      console.error("Error in request interceptor:", error);
+      return config;
+    }
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      try {
+        await signOut({ redirect: true, callbackUrl: "/auth/login" });
+      } catch (signOutError) {
+        console.error("Error during sign out:", signOutError);
+        window.location.href = "/auth/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);

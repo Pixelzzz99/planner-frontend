@@ -7,18 +7,26 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Archive, CalendarIcon, Clock, Tags } from "lucide-react";
+import { UpdateTaskDTO, TaskStatus } from "../models/task.model";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TaskSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  taskForm: any;
-  setTaskForm: (value: any) => void;
+  taskForm: UpdateTaskDTO;
+  setTaskForm: (value: UpdateTaskDTO) => void;
   onSubmit: () => void;
   onArchive: () => void;
+  categories: Array<{ id: string; name: string; color: string }>;
 }
 
 export function TaskSheet({
@@ -28,20 +36,16 @@ export function TaskSheet({
   setTaskForm,
   onSubmit,
   onArchive,
+  categories,
 }: TaskSheetProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      {/* 
-        h-full + flex-col: чтобы футер был прижат к низу 
-        (flex-1 содержимого «растягивается»), 
-        а Footer оставался снизу даже при небольшом количестве контента.
-      */}
-      <SheetContent className="w-[90vw] sm:w-[50vw] sm:max-w-[50vw] h-full flex flex-col overflow-hidden rounded-md border bg-white shadow-lg">
+      <SheetContent className="w-[90vw] sm:w-[50vw] sm:max-w-[50vw] h-full flex flex-col overflow-hidden rounded-md border bg-background">
         {/* Шапка */}
         <SheetHeader className="border-b px-6 py-4">
           <SheetTitle>
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-800">
+              <h2 className="text-base font-semibold">
                 {taskForm.id ? "Редактировать задачу" : "Новая задача"}
               </h2>
             </div>
@@ -52,101 +56,110 @@ export function TaskSheet({
         <div className="flex-1 overflow-auto px-6 py-6 space-y-6">
           {/* Поле «Заголовок» */}
           <div>
-            <Label className="mb-1 block text-sm font-medium text-gray-700">
-              Заголовок
-            </Label>
+            <Label className="mb-1 block text-sm font-medium">Заголовок</Label>
             <Input
               value={taskForm.title}
               onChange={(e) =>
-                setTaskForm((prev) => ({ ...prev, title: e.target.value }))
+                setTaskForm({ ...taskForm, title: e.target.value })
               }
               placeholder="Например: «Подготовить отчёт»"
-              className="
-                border-gray-300
-                focus-visible:ring-blue-600
-                focus-visible:ring-1
-              "
             />
+          </div>
+
+          {/* Статус */}
+          <div>
+            <Label className="mb-1 block text-sm font-medium">Статус</Label>
+            <Select
+              value={taskForm.status}
+              onValueChange={(value: TaskStatus) =>
+                setTaskForm({ ...taskForm, status: value })
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Выберите статус" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TaskStatus.TODO}>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-slate-400" />
+                    <span>К выполнению</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value={TaskStatus.IN_PROGRESS}>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-orange-500" />
+                    <span>В процессе</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value={TaskStatus.COMPLETED}>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span>Выполнено</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Добавляем селект категорий после статуса */}
+          <div>
+            <Label className="mb-1 block text-sm font-medium">Категория</Label>
+            <Select
+              value={taskForm.categoryId}
+              onValueChange={(value: string) =>
+                setTaskForm({ ...taskForm, categoryId: value })
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Выберите категорию" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <span>{category.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Мета-информация */}
           <div className="flex flex-wrap items-center gap-4">
             <Button variant="outline" className="h-8 gap-2">
-              <CalendarIcon className="h-4 w-4 text-gray-500" />
+              <CalendarIcon className="h-4 w-4" />
               <span className="text-sm">Сегодня</span>
             </Button>
             <Button variant="outline" className="h-8 gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
+              <Clock className="h-4 w-4" />
               <span className="text-sm">Установить время</span>
             </Button>
             <Button variant="outline" className="h-8 gap-2">
-              <Tags className="h-4 w-4 text-gray-500" />
+              <Tags className="h-4 w-4" />
               <span className="text-sm">Добавить метки</span>
             </Button>
           </div>
 
           {/* Описание */}
           <div>
-            <Label className="mb-1 block text-sm font-medium text-gray-700">
-              Описание
-            </Label>
+            <Label className="mb-1 block text-sm font-medium">Описание</Label>
             <Textarea
-              value={taskForm.description}
+              value={taskForm.description || ""}
               onChange={(e) =>
-                setTaskForm((prev) => ({
-                  ...prev,
+                setTaskForm({
+                  ...taskForm,
                   description: e.target.value,
-                }))
+                })
               }
               placeholder="Добавьте описание задачи..."
-              className="
-                min-h-[120px]
-                border border-gray-300
-                rounded-md
-                p-2
-                placeholder:text-gray-400
-                focus-visible:ring-1
-                focus-visible:ring-blue-600
-              "
+              className="min-h-[120px]"
             />
           </div>
-
-          {/* Статус */}
-          <button
-            type="button"
-            onClick={() =>
-              setTaskForm((prev) => ({ ...prev, done: !prev.done }))
-            }
-            className="
-              flex
-              w-full
-              items-center
-              gap-3
-              rounded-md
-              border
-              border-gray-200
-              bg-gray-50
-              p-3
-              text-left
-              hover:bg-gray-100
-              transition-colors
-            "
-          >
-            <Switch
-              checked={taskForm.done}
-              className="data-[state=checked]:bg-green-600"
-            />
-            <div className="flex-1">
-              <div className="text-sm font-medium text-gray-900">
-                {taskForm.done ? "Задача выполнена" : "В процессе"}
-              </div>
-              <div className="text-xs text-gray-500">
-                {taskForm.done
-                  ? "Нажмите, чтобы отметить как невыполненную"
-                  : "Нажмите, чтобы отметить как выполненную"}
-              </div>
-            </div>
-          </button>
         </div>
 
         {/* Футер (в самом низу) */}
@@ -154,16 +167,12 @@ export function TaskSheet({
           <Button
             variant="ghost"
             onClick={onArchive}
-            className="gap-2 text-gray-600 hover:text-red-600 hover:bg-red-50"
+            className="gap-2 hover:text-red-600 hover:bg-red-50"
           >
             <Archive className="h-4 w-4" />
             <span className="text-sm">В архив</span>
           </Button>
-          <Button
-            onClick={onSubmit}
-            className="px-4 rounded-md"
-            variant="ghost"
-          >
+          <Button onClick={onSubmit} className="px-4 rounded-md">
             {taskForm.id ? "Сохранить" : "Создать"}
           </Button>
         </SheetFooter>

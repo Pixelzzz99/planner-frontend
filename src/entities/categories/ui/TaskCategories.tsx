@@ -1,17 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { EditableText } from "@/shared/ui/EditableText";
-import { Trash2, Plus } from "lucide-react";
-
-interface Category {
-  id: number;
-  name: string;
-}
+import { Trash2, Plus, Loader2 } from "lucide-react";
+import { Category } from "../model/category.model";
 
 interface TaskCategoriesProps {
   categories: Category[];
   onAddCategory: () => void;
   onEditCategory: (category: Category) => void;
-  onDeleteCategory: (id: number) => void;
+  onDeleteCategory: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export function TaskCategories({
@@ -19,6 +16,7 @@ export function TaskCategories({
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
+  isLoading,
 }: TaskCategoriesProps) {
   return (
     <div className="border border-border p-4 rounded-md shadow-sm bg-card">
@@ -30,8 +28,14 @@ export function TaskCategories({
         variant="outline"
         onClick={onAddCategory}
         className="flex items-center gap-2 w-full mb-4 hover:bg-accent"
+        disabled={isLoading}
       >
-        <Plus size={18} /> Добавить категорию
+        {isLoading ? (
+          <Loader2 className="animate-spin" size={18} />
+        ) : (
+          <Plus size={18} />
+        )}
+        Добавить категорию
       </Button>
 
       {categories.length === 0 && (

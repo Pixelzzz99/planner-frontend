@@ -1,17 +1,18 @@
 import { userApi } from "@/entities/user/api/user.api";
 import { Session, SessionStrategy } from "next-auth";
 import { JWT } from "next-auth/jwt";
-
-// import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { cookies } from "next/headers";
+
+interface CustomSession extends Session {
+  user: {
+    id: string;
+    email: string;
+    accessToken: string;
+  };
+}
 
 export const authOptions = {
   providers: [
-    // GoogleProvider({
-    //   clientId: process.env.GOOGLE_ID ?? "",
-    //   clientSecret: process.env.GOOGLE_SECRET ?? "",
-    // }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -46,20 +47,48 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }: { token: any; user: any }) {
+    async jwt({ token, user }: { token: JWT; user: any; trigger?: string }) {
       if (user) {
         token.accessToken = user.accessToken;
         token.userId = user.id;
+        token.email = user.email;
       }
       return token;
     },
-    async session({ session, token }: { session: any; token: any }) {
-      session.user.id = token.userId;
-      session.user.accessToken = token.accessToken;
-      return session;
+    async session({ session, token }: { session: any; token: JWT }) {
+      if (!token) return null;
+
+      try {
+        if (token.accessToken) {
+          await userApi.checkAuth(token.accessToken);
+
+          return {
+            ...session,
+            user: {
+              id: token.userId,
+              email: token.email,
+              accessToken: token.accessToken,
+            },
+          } as CustomSession;
+        }
+        return null;
+      } catch {
+        return null;
+      }
     },
   },
-
+  events: {
+    async signOut({}: { token: JWT }) {
+      try {
+        await fetch("/api/auth/signout", {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch (error) {
+        console.error("Error during signout:", error);
+      }
+    },
+  },
   session: {
     strategy: "jwt" as SessionStrategy,
     maxAge: 24 * 60 * 60, // 24 hours
@@ -71,10 +100,13 @@ export const authOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        // secure: process.env.NODE_ENV === "production",
         maxAge: 24 * 60 * 60,
       },
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/error",
+  },
 };

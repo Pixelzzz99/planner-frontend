@@ -1,4 +1,11 @@
+export enum TaskStatus {
+  TODO = "TODO",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+}
+
 export type CreateTaskDTO = Omit<Task, "id" | "createdAt" | "category">;
+export type UpdateTaskDTO = Partial<CreateTaskDTO> & { id?: string };
 export interface Task {
   id: string;
   weekPlanId: string;
@@ -6,7 +13,7 @@ export interface Task {
   description?: string;
   priority: "HIGH" | "MEDIUM" | "LOW";
   duration: number;
-  status: "TODO" | "IN_PROGRESS" | "DONE";
+  status: TaskStatus;
   categoryId: string;
   day: number;
   date: string;
