@@ -60,7 +60,7 @@ export function TaskCategories({
             <Button
               size="icon"
               variant="ghost"
-              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
               onClick={() => onDeleteCategory(category.id)}
             >
               <Trash2 size={20} />

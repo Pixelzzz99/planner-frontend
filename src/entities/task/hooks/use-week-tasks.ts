@@ -66,6 +66,7 @@ export const useWeekTasks = (weekId: string) => {
         data: taskForm as CreateTaskDTO,
       });
     }
+    queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
     setIsModalOpen(false);
   };
 

@@ -87,7 +87,7 @@ export function TaskSheet({
                 </SelectItem>
                 <SelectItem value={TaskStatus.IN_PROGRESS}>
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-orange-500" />
+                    <div className="h-2 w-2 rounded-full bg-blue-500" />
                     <span>В процессе</span>
                   </div>
                 </SelectItem>

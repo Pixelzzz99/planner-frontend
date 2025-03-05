@@ -43,11 +43,19 @@ export function TaskCard({ task, index, onEdit, onDelete }: TaskCardProps) {
               <div className="mt-2 flex items-center gap-2">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    task.status === "COMPLETED" ? "bg-green-500" : "bg-gray-300"
+                    task.status === "COMPLETED"
+                      ? "bg-green-500"
+                      : task.status === "IN_PROGRESS"
+                      ? "bg-blue-500"
+                      : "bg-gray-300"
                   }`}
                 />
                 <span className="text-xs text-gray-500">
-                  {task.status === "COMPLETED" ? "Завершено" : "В процессе"}
+                  {task.status === "COMPLETED"
+                    ? "Завершено"
+                    : task.status === "IN_PROGRESS"
+                    ? "В работе"
+                    : "К выполнению"}
                 </span>
               </div>
             </div>
@@ -55,7 +63,7 @@ export function TaskCard({ task, index, onEdit, onDelete }: TaskCardProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
                 onClick={() => onEdit(task)}
               >
                 <Pencil className="h-4 w-4" />

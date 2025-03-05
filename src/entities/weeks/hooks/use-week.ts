@@ -54,6 +54,7 @@ export const useCreateTask = () => {
 };
 
 export const useUpdateTask = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       taskId,
@@ -63,6 +64,9 @@ export const useUpdateTask = () => {
       data: Partial<CreateTaskDTO>;
       weekId: string;
     }) => taskApi.updateTask(taskId, data),
+    onSuccess: (_, { weekId }) => {
+      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
+    },
   });
 };
 

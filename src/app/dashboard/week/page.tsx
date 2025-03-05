@@ -118,7 +118,7 @@ export default function WeekPage() {
               onDragEnd={handleDragEnd}
               onDragUpdate={handleDragUpdate}
             >
-              <div className="overflow-y-auto">
+              <div className="overflow-hidden">
                 <div className="flex items-start gap-4 overflow-x-auto pb-4 h-full">
                   {tasksByDay.map((day) => (
                     <DayColumn
