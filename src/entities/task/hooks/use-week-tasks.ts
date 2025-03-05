@@ -13,7 +13,7 @@ import {
   TaskStatus,
   UpdateTaskDTO,
 } from "../models/task.model";
-import { DropResult } from "@hello-pangea/dnd";
+import { DropResult, DragUpdate } from "@hello-pangea/dnd";
 
 export const useWeekTasks = (weekId: string) => {
   const queryClient = useQueryClient();
@@ -84,63 +84,51 @@ export const useWeekTasks = (weekId: string) => {
     deleteTask({ taskId, weekId });
   };
 
+  const updateTaskPosition = (
+    taskId: string,
+    sourceDay: number,
+    destinationDay: number,
+    destinationIndex: number
+  ) => {
+    if (!weekPlan) return;
+
+    queryClient.setQueryData(weekKeys.plan(weekId), (old: any) => {
+      if (!old) return old;
+
+      const task = old.tasks.find((t) => t.id === taskId);
+      if (!task) return old;
+
+      const updatedTask = { ...task, day: destinationDay };
+      const otherTasks = old.tasks.filter((t) => t.id !== taskId);
+
+      return {
+        ...old,
+        tasks: [...otherTasks, updatedTask],
+      };
+    });
+  };
+
+  const handleDragUpdate = (update: DragUpdate) => {
+    if (!update.destination) return;
+
+    const taskId = update.draggableId;
+    const sourceDay = parseInt(update.source.droppableId);
+    const destinationDay = parseInt(update.destination.droppableId);
+    const destinationIndex = update.destination.index;
+
+    updateTaskPosition(taskId, sourceDay, destinationDay, destinationIndex);
+  };
+
   const handleDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
+    const { source, destination, draggableId } = result;
     if (!destination || !weekPlan?.tasks) return;
 
     const sourceDay = parseInt(source.droppableId);
     const destinationDay = parseInt(destination.droppableId);
-    const sourceIndex = source.index;
-    const destinationIndex = destination.index;
-
-    // Получаем все задачи исходного дня в отсортированном виде
-    const sourceDayTasks = weekPlan.tasks
-      .filter((t) => t.day === sourceDay)
-      .sort((a, b) => {
-        const aIndex = weekPlan.tasks.indexOf(a);
-        const bIndex = weekPlan.tasks.indexOf(b);
-        return aIndex - bIndex;
-      });
-
-    // Находим перемещаемую задачу по индексу в отфильтрованном массиве
-    const taskToMove = sourceDayTasks[sourceIndex];
-    if (!taskToMove) return;
-
-    // Создаем новый массив всех задач
-    let newTasks = [...weekPlan.tasks];
-
-    if (sourceDay === destinationDay) {
-      // Перемещение в пределах одного дня
-      const dayTasks = newTasks.filter((t) => t.day === sourceDay);
-      const otherTasks = newTasks.filter((t) => t.day !== sourceDay);
-
-      // Удаляем задачу из текущей позиции
-      const taskIndex = dayTasks.findIndex((t) => t.id === taskToMove.id);
-      if (taskIndex > -1) {
-        dayTasks.splice(taskIndex, 1);
-      }
-
-      // Вставляем задачу в новую позицию
-      dayTasks.splice(destinationIndex, 0, taskToMove);
-
-      // Собираем все задачи вместе
-      newTasks = [...otherTasks, ...dayTasks];
-    } else {
-      // Перемещение между днями
-      newTasks = newTasks.map((t) =>
-        t.id === taskToMove.id ? { ...t, day: destinationDay } : t
-      );
-    }
-
-    // Оптимистичное обновление
-    queryClient.setQueryData(weekKeys.plan(weekId), {
-      ...weekPlan,
-      tasks: newTasks,
-    });
 
     // Отправляем запрос на сервер
     updateTask({
-      taskId: taskToMove.id,
+      taskId: draggableId,
       weekId,
       data: { day: destinationDay },
     });
@@ -158,6 +146,7 @@ export const useWeekTasks = (weekId: string) => {
     handleOpenEditTask,
     handleSubmitTask,
     handleDeleteTask,
+    handleDragUpdate,
     handleDragEnd,
   };
 };

@@ -12,7 +12,7 @@ interface DayColumnProps {
   onDeleteTask: (taskId: string) => void;
 }
 
-export const DayColumn = React.memo(function DayColumn({
+export function DayColumn({
   day,
   onAddTask,
   onEditTask,
@@ -24,17 +24,21 @@ export const DayColumn = React.memo(function DayColumn({
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border 
-            ${snapshot.isDraggingOver ? "bg-accent" : ""}`}
+          className="w-[280px] flex-shrink-0 bg-card rounded-xl shadow-sm border border-border hover:border-border/80 transition-colors"
+          style={{
+            backgroundColor: snapshot.isDraggingOver
+              ? "hsl(var(--accent))"
+              : "",
+          }}
         >
-          <div className="p-4 border-b border-border">
-            <h2 className="font-semibold text-gray-700 text-center">
+          <div className="p-4 border-b border-border/40 w-full bg-gray-50/80 dark:bg-card/80 rounded-t-xl">
+            <h2 className="font-semibold text-foreground/80 text-center">
               {day.label}
             </h2>
           </div>
 
-          <div className="p-3">
-            <div className="space-y-2">
+          <div className="p-3 w-full min-h-[100px]">
+            <div className="space-y-3 w-full">
               {day.tasks.map((task, index) => (
                 <TaskCard
                   key={task.id}
@@ -48,10 +52,10 @@ export const DayColumn = React.memo(function DayColumn({
             </div>
           </div>
 
-          <div className="p-3 border-t border-border">
+          <div className="p-3 border-t border-border/40 bg-gray-50/80 dark:bg-card/80 rounded-b-xl">
             <Button
               variant="ghost"
-              className="w-full justify-start text-gray-600 hover:text-gray-900"
+              className="w-full justify-start text-muted-foreground hover:text-foreground"
               onClick={() => onAddTask(day.id)}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -62,4 +66,4 @@ export const DayColumn = React.memo(function DayColumn({
       )}
     </Droppable>
   );
-});
+}

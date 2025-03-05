@@ -14,6 +14,7 @@ import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories-
 import { formatDate } from "date-fns";
 import { DAYS } from "@/shared/constants/days";
 import { useWeekTasks } from "@/entities/task/hooks/use-week-tasks";
+import { useMemo } from "react";
 
 export default function WeekPage() {
   const searchParams = useSearchParams();
@@ -47,12 +48,18 @@ export default function WeekPage() {
     handleSubmitTask,
     handleDeleteTask,
     handleDragEnd,
+    handleDragUpdate,
   } = useWeekTasks(weekId);
 
-  const tasksByDay = DAYS.map((day) => ({
-    ...day,
-    tasks: tasks?.filter((task) => task.day === day.id) || [], // добавлен fallback на пустой массив
-  }));
+  // Мемоизируем tasksByDay чтобы избежать лишних вычислений
+  const tasksByDay = useMemo(
+    () =>
+      DAYS.map((day) => ({
+        ...day,
+        tasks: tasks?.filter((task) => task.day === day.id) || [],
+      })),
+    [tasks]
+  );
 
   if (isLoading) {
     return <div>Загрузка...</div>;
@@ -60,29 +67,33 @@ export default function WeekPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              className="hover:bg-accent rounded-full p-2 h-10 w-10"
-              onClick={() => router.push("/dashboard/year")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-3xl font-bold text-foreground">
-              {weekPlan?.startDate &&
-                `Неделя ${formatDate(
-                  weekPlan.startDate,
-                  "dd.MM.yyyy"
-                )} - ${formatDate(weekPlan.endDate, "dd.MM.yyyy")}`}
-            </h1>
+      {/* Header - фиксированный */}
+      <div className="fixed top-0 left-0 right-0 bg-background z-10 border-b">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                className="hover:bg-accent rounded-full p-2 h-10 w-10"
+                onClick={() => router.push("/dashboard/year")}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h1 className="text-3xl font-bold text-foreground">
+                {weekPlan?.startDate &&
+                  `Неделя ${formatDate(
+                    weekPlan.startDate,
+                    "dd.MM.yyyy"
+                  )} - ${formatDate(weekPlan.endDate, "dd.MM.yyyy")}`}
+              </h1>
+            </div>
+            <ThemeToggle />
           </div>
-          <ThemeToggle />
         </div>
+      </div>
 
-        {/* Main Content */}
+      {/* Main Content - с отступом сверху */}
+      <div className="container mx-auto p-6 pt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-3 space-y-6">
@@ -101,42 +112,47 @@ export default function WeekPage() {
             </div>
           </div>
 
-          {/* Tasks Grid */}
+          {/* Tasks Grid - фиксированная высота */}
           <div className="lg:col-span-9">
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <div className="flex items-start gap-4 overflow-x-auto pb-4">
-                {tasksByDay.map((day) => (
-                  <DayColumn
-                    key={day.id}
-                    day={day}
-                    onAddTask={handleOpenAddTask}
-                    onEditTask={handleOpenEditTask}
-                    onDeleteTask={handleDeleteTask}
-                  />
-                ))}
+            <DragDropContext
+              onDragEnd={handleDragEnd}
+              onDragUpdate={handleDragUpdate}
+            >
+              <div className="overflow-y-auto">
+                <div className="flex items-start gap-4 overflow-x-auto pb-4 h-full">
+                  {tasksByDay.map((day) => (
+                    <DayColumn
+                      key={day.id}
+                      day={day}
+                      onAddTask={handleOpenAddTask}
+                      onEditTask={handleOpenEditTask}
+                      onDeleteTask={handleDeleteTask}
+                    />
+                  ))}
+                </div>
               </div>
             </DragDropContext>
           </div>
         </div>
-
-        {/* Modals */}
-        <TaskSheet
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          taskForm={taskForm}
-          setTaskForm={setTaskForm}
-          onSubmit={handleSubmitTask}
-          onArchive={() => {}}
-          categories={categories}
-        />
-        <CategoryFormModal
-          isOpen={isCategoryModalOpen}
-          onClose={() => setIsCategoryModalOpen(false)}
-          categoryForm={categoryForm}
-          setCategoryForm={setCategoryForm}
-          onSubmit={handleSubmitCategory}
-        />
       </div>
+
+      {/* Modals */}
+      <TaskSheet
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        taskForm={taskForm}
+        setTaskForm={setTaskForm}
+        onSubmit={handleSubmitTask}
+        onArchive={() => {}}
+        categories={categories}
+      />
+      <CategoryFormModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categoryForm={categoryForm}
+        setCategoryForm={setCategoryForm}
+        onSubmit={handleSubmitCategory}
+      />
     </div>
   );
 }
