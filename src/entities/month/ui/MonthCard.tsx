@@ -49,7 +49,7 @@ export const MonthCard = ({
                     </span>
                   </Link>
                   <Button variant="ghost" onClick={() => onDeleteWeek(week.id)}>
-                    <Trash2 className="w-4 h-4 text-destructive" />
+                    <Trash2 className="h-4 w-4 text-red-500 hover:text-red-600 hover:bg-red-50" />
                   </Button>
                 </div>
               </div>
