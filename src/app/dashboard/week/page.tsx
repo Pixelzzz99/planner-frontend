@@ -15,12 +15,13 @@ import { formatDate } from "date-fns";
 import { DAYS } from "@/shared/constants/days";
 import { useWeekTasks } from "@/entities/task/hooks/use-week-tasks";
 import { useMemo } from "react";
+import { TaskArchive } from "@/entities/task/ui/TaskArchive";
 
 export default function WeekPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const weekId = searchParams?.get("weekId") ?? "";
-  const userId = "d170f6e3-ee3f-4daf-af5c-da03857211c2"; // TODO: Заменить на реальный userId
+  const userId = "d170f6e3-ee3f-4daf-af5c-da03857211c2";
 
   const {
     categories,
@@ -130,10 +131,10 @@ export default function WeekPage() {
         </div>
       </div>
 
-      {/* Main Content - с отступом сверху */}
+      {/* Main Content */}
       <div className="container mx-auto p-6 pt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Sidebar */}
+          {/* Левая колонка с WeekFocus и TaskCategories */}
           <div className="lg:col-span-3 space-y-6">
             <div className="bg-card rounded-xl shadow-sm border border-border p-6">
               <WeekFocus weekPlanId={weekId} />
@@ -150,23 +151,34 @@ export default function WeekPage() {
             </div>
           </div>
 
-          {/* Tasks Grid - фиксированная высота */}
+          {/* Правая колонка с DragDropContext */}
           <div className="lg:col-span-9">
             <DragDropContext
               onDragEnd={handleDragEnd}
               onDragUpdate={handleDragUpdate}
             >
-              <div className="overflow-hidden">
-                <div className="flex items-start gap-4 overflow-x-auto pb-4 h-full">
-                  {tasksByDay.map((day) => (
-                    <DayColumn
-                      key={day.id}
-                      day={day}
-                      onAddTask={handleOpenAddTask}
-                      onEditTask={handleOpenEditTask}
-                      onDeleteTask={handleDeleteTask}
-                    />
-                  ))}
+              <div className="grid grid-cols-1 gap-6">
+                {/* Колонки с днями */}
+                <div className="overflow-hidden">
+                  <div className="flex items-start gap-4 overflow-x-auto pb-4">
+                    {tasksByDay.map((day) => (
+                      <DayColumn
+                        key={day.id}
+                        day={day}
+                        onAddTask={handleOpenAddTask}
+                        onEditTask={handleOpenEditTask}
+                        onDeleteTask={handleDeleteTask}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Архив */}
+                <div className="bg-card rounded-xl shadow-sm">
+                  <TaskArchive
+                    onEditTask={handleOpenEditTask}
+                    onDeleteTask={handleDeleteTask}
+                  />
                 </div>
               </div>
             </DragDropContext>

@@ -111,10 +111,10 @@ export default function YearDashboardPage() {
               </div>
             </div>
           </div>
-
+          {/* 
           <div className="mt-8">
             <TaskArchive archivedTasks={archivedTasks} />
-          </div>
+          </div> */}
         </>
       )}
 

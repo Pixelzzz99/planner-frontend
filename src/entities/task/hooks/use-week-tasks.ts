@@ -14,6 +14,7 @@ import {
   UpdateTaskDTO,
 } from "../models/task.model";
 import { DropResult, DragUpdate } from "@hello-pangea/dnd";
+import { taskApi } from "../api/task.api";
 
 export const useWeekTasks = (weekId: string) => {
   const queryClient = useQueryClient();
@@ -124,15 +125,26 @@ export const useWeekTasks = (weekId: string) => {
     const { source, destination, draggableId } = result;
     if (!destination || !weekPlan?.tasks) return;
 
-    const sourceDay = parseInt(source.droppableId);
-    const destinationDay = parseInt(destination.droppableId);
+    const taskId = draggableId;
 
-    // Отправляем запрос на сервер
-    updateTask({
-      taskId: draggableId,
-      weekId,
-      data: { day: destinationDay },
-    });
+    if (destination.droppableId === "archive") {
+      // Оптимистическое обновление UI
+      queryClient.setQueryData(weekKeys.plan(weekId), (old: any) => ({
+        ...old,
+        tasks: old.tasks.filter((t: Task) => t.id !== taskId),
+      }));
+
+      // Отправляем запрос на архивацию
+      taskApi.archiveTask(taskId);
+    } else {
+      const destinationDay = parseInt(destination.droppableId);
+      // Используем новый эндпоинт move
+      taskApi.moveTask(taskId, {
+        weekPlanId: weekId,
+        day: destinationDay,
+        date: new Date().toISOString(),
+      });
+    }
   };
 
   return {

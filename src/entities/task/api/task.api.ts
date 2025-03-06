@@ -23,4 +23,22 @@ export const taskApi = {
   deleteTask: async (taskId: string): Promise<void> => {
     await api.delete(`/tasks/${taskId}`);
   },
+
+  getArchivedTasks: async (): Promise<Task[]> => {
+    const res = await api.get("/tasks/archived");
+    return res.data;
+  },
+
+  archiveTask: async (taskId: string, reason?: string): Promise<Task> => {
+    const res = await api.patch(`/tasks/${taskId}/archive`, { reason });
+    return res.data;
+  },
+
+  moveTask: async (
+    taskId: string,
+    data: { weekPlanId: string; day: number; date: string }
+  ): Promise<Task> => {
+    const res = await api.patch(`/tasks/${taskId}/move`, data);
+    return res.data;
+  },
 };

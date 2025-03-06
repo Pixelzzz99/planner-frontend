@@ -1,31 +1,55 @@
-export function TaskArchive({ archivedTasks }) {
+import { Droppable } from "@hello-pangea/dnd";
+import { Archive } from "lucide-react";
+import { Task } from "../models/task.model";
+import { TaskCard } from "./TaskCard";
+import { useArchivedTasks } from "../hooks/use-archived-tasks";
+
+interface TaskArchiveProps {
+  onEditTask: (task: Task) => void;
+  onDeleteTask: (taskId: string) => void;
+}
+
+export function TaskArchive({ onEditTask, onDeleteTask }: TaskArchiveProps) {
+  const { data: archivedTasks, isLoading } = useArchivedTasks();
+
   return (
-    <div className="border border-border p-3 rounded-md mb-4 bg-card">
-      <h2 className="font-semibold mb-2 text-lg text-foreground">
-        Архив задач
-      </h2>
-      {archivedTasks.length === 0 && (
-        <div className="text-muted-foreground text-sm">Архив пуст</div>
-      )}
-      {archivedTasks.map((task) => (
+    <Droppable droppableId="archive">
+      {(provided, snapshot) => (
         <div
-          key={task.id}
-          className="p-2 mb-2 bg-muted rounded-md text-sm hover:bg-muted/80 transition-colors"
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+          className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border
+            ${snapshot.isDraggingOver ? "bg-accent" : ""}
+          `}
         >
-          <div className="font-semibold text-foreground">{task.title}</div>
-          <div className="text-xs text-muted-foreground">
-            {task.description}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Archive className="h-4 w-4" />
+                <h2 className="font-semibold text-gray-700">Архив</h2>
+              </div>
+              {isLoading && (
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              )}
+            </div>
           </div>
-          <div className="text-xs mt-1 text-muted-foreground flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                task.done ? "bg-green-500" : "bg-yellow-500"
-              }`}
-            />
-            Статус: {task.done ? "Сделано" : "Не сделано"}
+
+          <div className="p-3">
+            <div className="space-y-3">
+              {archivedTasks?.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  onEdit={onEditTask}
+                  onDelete={onDeleteTask}
+                />
+              ))}
+              {provided.placeholder}
+            </div>
           </div>
         </div>
-      ))}
-    </div>
+      )}
+    </Droppable>
   );
 }
