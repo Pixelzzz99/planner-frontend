@@ -52,6 +52,7 @@ export default function WeekPage() {
     handleDeleteTask,
     handleDragEnd,
     handleDragUpdate,
+    handleDragStart,
   } = useWeekTasks(weekId);
 
   // Мемоизируем tasksByDay чтобы избежать лишних вычислений
@@ -156,6 +157,7 @@ export default function WeekPage() {
           {/* Правая колонка с DragDropContext */}
           <div className="lg:col-span-9">
             <DragDropContext
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onDragUpdate={handleDragUpdate}
             >

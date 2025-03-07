@@ -6,7 +6,7 @@ import { Task } from "../models/task.model";
 import React from "react";
 
 interface DayColumnProps {
-  day: { id: number; label: string; tasks: Task[] };
+  day: { id: number; label: string; tasks: Task[]; color: string };
   onAddTask: (day: number) => void;
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
@@ -24,12 +24,12 @@ export function DayColumn({
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border min-h-[200px]
-            ${snapshot.isDraggingOver ? "bg-accent/50" : ""}
-          `}
+          className={`flex-shrink-0 w-[300px] rounded-xl shadow-sm border border-border min-h-[200px] ${
+            snapshot.isDraggingOver ? "bg-accent/50" : day.color
+          }`}
         >
-          <div className="p-4 border-b border-border w-full">
-            <h2 className="font-semibold text-gray-700 text-center">
+          <div className="p-4 border-b border-border/50 w-full backdrop-blur-sm">
+            <h2 className="font-semibold text-foreground/90 text-center">
               {day.label}
             </h2>
           </div>

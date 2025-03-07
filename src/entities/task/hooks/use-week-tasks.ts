@@ -80,11 +80,26 @@ export const useWeekTasks = (weekId: string) => {
 
   const handleSubmitTask = () => {
     if ("id" in taskForm) {
+      // Оптимистичное обновление для редактирования
+      updateWeekTasks((tasks) =>
+        tasks.map((task) =>
+          task.id === taskForm.id ? { ...task, ...taskForm } : task
+        )
+      );
       updateTask({ taskId: taskForm.id!, weekId, data: taskForm });
     } else {
+      // Оптимистичное обновление для создания
+      const tempId = `temp-${Date.now()}`;
+      const newTask = {
+        ...taskForm,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as Task;
+
+      updateWeekTasks((tasks) => [...tasks, newTask]);
       createTask({ weekId, data: taskForm as CreateTaskDTO });
     }
-    queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
     setIsModalOpen(false);
   };
 
@@ -198,8 +213,9 @@ export const useWeekTasks = (weekId: string) => {
   };
 
   const handleDeleteTask = (taskId: string) => {
+    // Оптимистичное обновление для удаления
+    updateWeekTasks((tasks) => tasks.filter((task) => task.id !== taskId));
     deleteTask({ taskId, weekId });
-    queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
   };
 
   const updateTaskPosition = (
