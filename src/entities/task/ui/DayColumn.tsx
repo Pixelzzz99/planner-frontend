@@ -19,13 +19,13 @@ export function DayColumn({
   onDeleteTask,
 }: DayColumnProps) {
   return (
-    <Droppable droppableId={String(day.id)}>
+    <Droppable droppableId={String(day.id)} type="task">
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border 
-            ${snapshot.isDraggingOver ? "bg-accent" : ""}
+          className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border min-h-[200px]
+            ${snapshot.isDraggingOver ? "bg-accent/50" : ""}
           `}
         >
           <div className="p-4 border-b border-border w-full">

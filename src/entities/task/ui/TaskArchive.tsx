@@ -2,24 +2,28 @@ import { Droppable } from "@hello-pangea/dnd";
 import { Archive } from "lucide-react";
 import { Task } from "../models/task.model";
 import { TaskCard } from "./TaskCard";
-import { useArchivedTasks } from "../hooks/use-archived-tasks";
 
 interface TaskArchiveProps {
+  tasks: Task[];
+  isLoading?: boolean;
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
 }
 
-export function TaskArchive({ onEditTask, onDeleteTask }: TaskArchiveProps) {
-  const { data: archivedTasks, isLoading } = useArchivedTasks();
-
+export function TaskArchive({
+  tasks,
+  isLoading,
+  onEditTask,
+  onDeleteTask,
+}: TaskArchiveProps) {
   return (
-    <Droppable droppableId="archive">
+    <Droppable droppableId="-1" type="task">
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border
-            ${snapshot.isDraggingOver ? "bg-accent" : ""}
+          className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border min-h-[200px]
+            ${snapshot.isDraggingOver ? "bg-accent/50" : ""}
           `}
         >
           <div className="p-4 border-b border-border">
@@ -36,7 +40,7 @@ export function TaskArchive({ onEditTask, onDeleteTask }: TaskArchiveProps) {
 
           <div className="p-3">
             <div className="space-y-3">
-              {archivedTasks?.map((task, index) => (
+              {tasks?.map((task, index) => (
                 <TaskCard
                   key={task.id}
                   task={task}

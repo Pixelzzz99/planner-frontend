@@ -39,7 +39,9 @@ export default function WeekPage() {
   const {
     weekPlan,
     isLoading,
-    tasks, // изменено с localTasks на tasks
+    tasks,
+    archivedTasks,
+    isArchivedLoading,
     taskForm,
     setTaskForm,
     isModalOpen,
@@ -176,6 +178,8 @@ export default function WeekPage() {
                 {/* Архив */}
                 <div className="bg-card rounded-xl shadow-sm">
                   <TaskArchive
+                    tasks={archivedTasks}
+                    isLoading={isArchivedLoading}
                     onEditTask={handleOpenEditTask}
                     onDeleteTask={handleDeleteTask}
                   />
