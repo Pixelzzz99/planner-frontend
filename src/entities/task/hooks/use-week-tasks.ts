@@ -89,27 +89,8 @@ export const useWeekTasks = (weekId: string) => {
   };
 
   // Drag and Drop handlers
-  const handleDragUpdate = (update: DragUpdate) => {
-    if (!update.destination) return;
-
-    const { source, destination, draggableId: taskId } = update;
-
-    // Проверяем, что это перемещение между днями (не из/в архив)
-    const sourceDay = parseInt(source.droppableId);
-    const destinationDay = parseInt(destination.droppableId);
-
-    // Обрабатываем только перемещения между днями
-    if (!isNaN(sourceDay) && !isNaN(destinationDay)) {
-      updateTaskPosition(taskId, sourceDay, destinationDay, destination.index);
-    }
-  };
-
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const { source, destination, draggableId: taskId } = result;
+  const handleTaskMove = ({ taskId, source, destination }: TaskOperation) => {
     const { weekTasks, archivedTasks } = getTaskState();
-
     const isFromArchive = source.droppableId === "-1";
     const isToArchive = destination.droppableId === "-1";
 
@@ -119,62 +100,48 @@ export const useWeekTasks = (weekId: string) => {
 
     if (!task) return;
 
-    // Перемещение в архив
-    if (isToArchive && !isFromArchive) {
-      updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
-      updateArchivedTasks((tasks) => [
-        {
-          ...task,
-          isArchived: true,
-          archivedAt: new Date().toISOString(),
-        },
-        ...tasks,
-      ]);
-
-      moveTask({
-        taskId,
-        data: {
-          toArchive: true,
-          archiveReason: "Moved to archive via drag-and-drop",
-        },
-      });
-    }
-    // Восстановление из архива
-    else if (!isToArchive && isFromArchive) {
+    if (isToArchive) {
+      handleMoveToArchive(task);
+    } else {
       const destinationDay = parseInt(destination.droppableId);
-      if (isNaN(destinationDay)) return;
-
-      updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== taskId));
-      updateWeekTasks((tasks) => [
-        ...tasks,
-        {
-          ...task,
-          day: destinationDay,
-          isArchived: false,
-        },
-      ]);
-
-      moveTask({
-        taskId,
-        data: {
-          weekPlanId: weekId,
-          day: destinationDay,
-          date: new Date().toISOString(),
-        },
-      });
+      if (isFromArchive) {
+        handleRestoreFromArchive(task, destinationDay);
+      } else {
+        handleMoveBetweenDays(task, destinationDay);
+      }
     }
-    // Перемещение между днями
-    else if (!isFromArchive && !isToArchive) {
-      const destinationDay = parseInt(destination.droppableId);
-      moveTask({
-        taskId,
-        data: {
-          weekPlanId: weekId,
-          day: destinationDay,
-          date: new Date().toISOString(),
-        },
-      });
+  };
+
+  const handleDragUpdate = (update: DragUpdate) => {
+    if (!update.destination) return;
+
+    const { source, destination, draggableId: taskId } = update;
+
+    // Определяем тип операции
+    const isFromArchive = source.droppableId === "-1";
+    const isToArchive = destination.droppableId === "-1";
+
+    // Если таск из архива или в архив - пропускаем промежуточные обновления
+    if (isFromArchive || isToArchive) {
+      return;
     }
+
+    // Обрабатываем только перемещения между днями
+    const sourceDay = parseInt(source.droppableId);
+    const destinationDay = parseInt(destination.droppableId);
+
+    if (!isNaN(sourceDay) && !isNaN(destinationDay)) {
+      updateTaskPosition(taskId, sourceDay, destinationDay, destination.index);
+    }
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    handleTaskMove({
+      taskId: result.draggableId,
+      source: result.source,
+      destination: result.destination,
+    });
   };
 
   // Private handlers
