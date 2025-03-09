@@ -26,7 +26,7 @@ export function TaskArchive({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-shrink-0 w-[300px] bg-card rounded-xl shadow-sm border border-border min-h-[200px]
+      className={`flex-shrink-0 w-[250px] bg-card rounded-xl shadow-sm border border-border min-h-[200px]
         ${isOver ? "bg-accent/50" : ""}
       `}
     >

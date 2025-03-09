@@ -52,7 +52,7 @@ export function DayColumn({
       <div className="p-3 border-t border-border">
         <Button
           variant="ghost"
-          className="w-full justify-start text-gray-600 hover:text-gray-900"
+          className="w-full justify-start text-foreground hover:text-foreground/80"
           onClick={() => openAddTask(day.id)}
         >
           <Plus className="h-4 w-4 mr-2" />

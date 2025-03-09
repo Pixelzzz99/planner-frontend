@@ -59,11 +59,10 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     updateWeekTasks((tasks) => [...tasks, newTask]);
 
     // Отправляем запрос на сервер без временного id
-    const { id, createdAt, ...createData } = newTask;
     createTask(
       {
         weekId,
-        data: createData as CreateTaskDTO,
+        data: newTask as Omit<CreateTaskDTO, "id" | "createdAt">,
       },
       {
         onSuccess: (response) => {

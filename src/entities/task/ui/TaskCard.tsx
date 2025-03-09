@@ -28,18 +28,20 @@ export function TaskCard({
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
       className={`
-        group p-3 w-full
-        rounded-lg hover:bg-accent border border-border mb-auto
+        group p-3 w-full relative
+        rounded-lg hover:bg-accent border border-border mb-auto 
         ${isDragging ? "opacity-50" : ""}
         ${task.status === "COMPLETED" ? "opacity-60" : ""}
         bg-background
       `}
     >
       <div className="flex gap-3 w-full">
-        <div className="flex items-center text-gray-400 hover:text-gray-600">
+        <div
+          {...attributes}
+          {...listeners}
+          className="flex items-center text-gray-400 hover:text-gray-600"
+        >
           <GripVertical className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
@@ -70,7 +72,7 @@ export function TaskCard({
             </span>
           </div>
         </div>
-        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2">
           <Button
             variant="ghost"
             size="icon"

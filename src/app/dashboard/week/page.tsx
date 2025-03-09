@@ -34,12 +34,13 @@ import { useWeekTasks } from "@/entities/task/hooks/useWeekTasks";
 import { Task } from "@/entities/task";
 import { useTaskMutations } from "@/entities/task/hooks/useTaskMutations";
 import { TaskCard } from "@/entities/task/ui/TaskCard";
+import { useUserId } from "@/shared/lib/hooks/useUserId";
 
 export default function WeekPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const weekId = searchParams?.get("weekId") ?? "";
-  const userId = "d170f6e3-ee3f-4daf-af5c-da03857211c2";
+  const userId = useUserId();
 
   const {
     categories,
