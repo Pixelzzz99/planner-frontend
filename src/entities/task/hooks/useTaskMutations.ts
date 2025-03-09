@@ -58,14 +58,16 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     // Оптимистичное обновление UI
     updateWeekTasks((tasks) => [...tasks, newTask]);
 
+    const { id, createdAt, ...taskData } = newTask;
+
     // Отправляем запрос на сервер без временного id
     createTask(
       {
         weekId,
-        data: newTask as Omit<CreateTaskDTO, "id" | "createdAt">,
+        data: taskData as CreateTaskDTO,
       },
       {
-        onSuccess: (response) => {
+        onSuccess: (response: Task) => {
           updateWeekTasks((tasks) =>
             tasks.map((t) => (t.id === tempId ? { ...t, id: response.id } : t))
           );
@@ -85,7 +87,7 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     updateWeekTasks((tasks) => tasks.filter((task) => task.id !== taskId));
     updateArchivedTasks((tasks) => [
       ...tasks,
-      getTaskState().weekTasks.find((task) => task.id === taskId)!,
+      getTaskState().archivedTasks.find((task) => task.id === taskId)!,
     ]);
     deleteTask({ taskId, weekId });
   };
