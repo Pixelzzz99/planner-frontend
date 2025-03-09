@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { Task } from "../models/task.model";
 import { weekKeys } from "@/entities/weeks/hooks/use-week";
-import { archivedTasksKeys } from "../hooks/use-archived-tasks";
+import { archivedTasksKeys } from "../hooks/useArchivedTasks";
 
 export class TaskCache {
   constructor(private queryClient: QueryClient, private weekId: string) {}

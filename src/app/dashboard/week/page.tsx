@@ -1,21 +1,39 @@
 "use client";
-
+import { useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { DragDropContext } from "@hello-pangea/dnd";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { TaskSheet } from "@/entities/task/ui/TaskSheet";
-import { CategoryFormModal } from "@/entities/categories/ui/CategoryFormModal";
-import { TaskCategories } from "@/entities/categories/ui/TaskCategories";
-import { WeekFocus } from "@/entities/weeks/ui/WeekFocus";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { DayColumn } from "@/entities/task/ui/DayColumn";
-import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories-widget";
-import { formatDate } from "date-fns";
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  defaultDropAnimation,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverEvent,
+} from "@dnd-kit/core";
+
+//constants
 import { DAYS } from "@/shared/constants/days";
-import { useWeekTasks } from "@/entities/task/hooks/use-week-tasks";
-import { useMemo } from "react";
+
+//weeks ui
+import { WeekSkeleton } from "@/entities/weeks/ui/WeekSkeleton";
+import { WeekPageHeader } from "@/entities/weeks/ui/WeekPageHeader";
+import { LeftSidePage } from "@/widgets/week/LeftSidePage";
+
+//categories ui
+import { CategoryFormModal } from "@/entities/categories/ui/CategoryFormModal";
+import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories-widget";
+
+//tasks ui
+import { TaskSheet } from "@/entities/task/ui/TaskSheet";
+import { DayColumn } from "@/entities/task/ui/DayColumn";
 import { TaskArchive } from "@/entities/task/ui/TaskArchive";
+import { useWeekTasks } from "@/entities/task/hooks/useWeekTasks";
+import { Task } from "@/entities/task";
+import { useTaskMutations } from "@/entities/task/hooks/useTaskMutations";
+import { TaskCard } from "@/entities/task/ui/TaskCard";
 
 export default function WeekPage() {
   const searchParams = useSearchParams();
@@ -29,149 +47,144 @@ export default function WeekPage() {
     setCategoryForm,
     isModalOpen: isCategoryModalOpen,
     setIsModalOpen: setIsCategoryModalOpen,
-    handleOpenAddModal: handleOpenAddCategory,
-    handleOpenEditModal: handleOpenEditCategory,
     handleSubmit: handleSubmitCategory,
-    handleDelete: handleDeleteCategory,
-    isLoading: isCategoriesLoading,
   } = useCategoriesWidget(userId);
 
   const {
     weekPlan,
-    isLoading,
     tasks,
     archivedTasks,
-    isArchivedLoading,
+    isLoading,
+
+    // task form
     taskForm,
     setTaskForm,
     isModalOpen,
-    setIsModalOpen,
-    handleOpenAddTask,
-    handleOpenEditTask,
+    openAddTask,
+    openEditTask,
+    closeModal,
     handleSubmitTask,
     handleDeleteTask,
-    handleDragEnd,
-    handleDragUpdate,
-    handleDragStart,
   } = useWeekTasks(weekId);
 
-  // Мемоизируем tasksByDay чтобы избежать лишних вычислений
-  const tasksByDay = useMemo(
-    () =>
-      DAYS.map((day) => ({
-        ...day,
-        tasks: tasks?.filter((task) => task.day === day.id) || [],
-      })),
-    [tasks]
+  const tasksByDay = useMemo(() => {
+    if (!tasks) return {};
+    const grouped: { [dayId: number]: Task[] } = {};
+    for (const day of DAYS) {
+      grouped[day.id] = tasks.filter((task) => task.day === day.id);
+    }
+    return grouped;
+  }, [tasks]);
+
+  const { updateTaskPositionInCache, commitTaskPosition } = useTaskMutations({
+    weekId,
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
   );
 
+  // Добавляем стейт для активной задачи
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  // Добавляем стейт для хранения начального контейнера
+  const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = event.active.data.current?.task as Task;
+    if (task) {
+      setActiveTask(task);
+      setActiveSourceId(event.active.data.current?.container);
+    }
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const task = active.data.current?.task as Task;
+    if (!task) return;
+
+    const sourceId = active.data.current?.container;
+    const targetId = over.id;
+
+    if (!sourceId || !targetId) return;
+    if (sourceId === targetId) return;
+
+    const destinationDay =
+      targetId === "-1" ? -1 : parseInt(targetId as string);
+    if (targetId === "-1" || !isNaN(destinationDay)) {
+      updateTaskPositionInCache(task.id, destinationDay, 0, sourceId as string);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || !activeSourceId) return;
+
+    const task = active.data.current?.task as Task;
+    if (!task) return;
+
+    // Изменяем здесь: получаем targetId из over.id напрямую
+    const targetId = String(over.id);
+
+    if (!targetId || activeSourceId === targetId) return;
+
+    try {
+      const destinationDay = targetId === "-1" ? -1 : parseInt(targetId);
+      commitTaskPosition(task.id, destinationDay);
+    } catch (error) {
+      console.error("Failed to move task:", error);
+    }
+
+    setActiveTask(null);
+    setActiveSourceId(null);
+  };
+
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="fixed top-0 left-0 right-0 bg-background z-10 border-b">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="h-8 w-64 bg-muted animate-pulse rounded" />
-              <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
-            </div>
-          </div>
-        </div>
-
-        <div className="container mx-auto p-6 pt-24">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-3 space-y-6">
-              <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-48 animate-pulse" />
-              <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-64 animate-pulse" />
-            </div>
-
-            <div className="lg:col-span-9">
-              <div className="flex gap-4 overflow-x-auto">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-[300px]">
-                    <div className="h-12 bg-muted mb-4 rounded animate-pulse" />
-                    <div className="space-y-4">
-                      {[...Array(3)].map((_, j) => (
-                        <div
-                          key={j}
-                          className="h-24 bg-muted rounded animate-pulse"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <WeekSkeleton />;
   }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header - фиксированный */}
-      <div className="fixed top-0 left-0 right-0 bg-background z-10 border-b">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                className="hover:bg-accent rounded-full p-2 h-10 w-10"
-                onClick={() => router.push("/dashboard/year")}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <h1 className="text-3xl font-bold text-foreground">
-                {weekPlan?.startDate &&
-                  `Неделя ${formatDate(
-                    weekPlan.startDate,
-                    "dd.MM.yyyy"
-                  )} - ${formatDate(weekPlan.endDate, "dd.MM.yyyy")}`}
-              </h1>
-            </div>
-            <ThemeToggle />
-          </div>
-        </div>
-      </div>
+      <WeekPageHeader
+        weekPlan={weekPlan!}
+        onBack={() => router.push("/dashboard/year")}
+      />
 
       {/* Main Content */}
-      <div className="container mx-auto p-6 pt-24">
+      <div className="mx-auto p-6 pt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Левая колонка с WeekFocus и TaskCategories */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-              <WeekFocus weekPlanId={weekId} />
-            </div>
+          <LeftSidePage userId={userId} weekId={weekId} />
 
-            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-              <TaskCategories
-                categories={categories}
-                onAddCategory={handleOpenAddCategory}
-                onEditCategory={handleOpenEditCategory}
-                onDeleteCategory={handleDeleteCategory}
-                isLoading={isCategoriesLoading}
-              />
-            </div>
-          </div>
-
-          {/* Правая колонка с DragDropContext */}
+          {/* Правая колонка с DndContext */}
           <div className="lg:col-span-9">
-            <DragDropContext
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
               onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
-              onDragUpdate={handleDragUpdate}
             >
               <div className="grid grid-cols-1 gap-6">
-                {/* Колонки с днями */}
                 <div className="overflow-hidden">
                   <div className="flex items-start gap-4 overflow-x-auto pb-4">
-                    {tasksByDay.map((day) => (
+                    {DAYS.map((day) => (
                       <DayColumn
                         key={day.id}
-                        day={day}
-                        onAddTask={handleOpenAddTask}
-                        onEditTask={handleOpenEditTask}
-                        onDeleteTask={handleDeleteTask}
+                        day={{
+                          ...day,
+                          tasks: tasksByDay[day.id] || [],
+                        }}
+                        openAddTask={openAddTask}
+                        openEditTask={openEditTask}
+                        handleDeleteTask={handleDeleteTask}
                       />
                     ))}
                   </div>
@@ -180,14 +193,24 @@ export default function WeekPage() {
                 {/* Архив */}
                 <div className="bg-card rounded-xl shadow-sm">
                   <TaskArchive
-                    tasks={archivedTasks}
-                    isLoading={isArchivedLoading}
-                    onEditTask={handleOpenEditTask}
+                    tasks={archivedTasks!}
+                    isLoading={isLoading}
+                    onEditTask={openEditTask}
                     onDeleteTask={handleDeleteTask}
                   />
                 </div>
               </div>
-            </DragDropContext>
+              <DragOverlay dropAnimation={defaultDropAnimation}>
+                {activeTask ? (
+                  <TaskCard
+                    task={activeTask}
+                    containerId={"-1"}
+                    onEdit={() => {}}
+                    onDelete={() => {}}
+                  />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           </div>
         </div>
       </div>
@@ -195,7 +218,7 @@ export default function WeekPage() {
       {/* Modals */}
       <TaskSheet
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         taskForm={taskForm}
         setTaskForm={setTaskForm}
         onSubmit={handleSubmitTask}

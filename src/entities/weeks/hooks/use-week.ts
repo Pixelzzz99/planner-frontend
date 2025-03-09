@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { weekApi } from "../api/week.api";
 import { taskApi } from "@/entities/task/api/task.api";
 import { CreateTaskDTO } from "@/entities/task/models/task.model";
-import { archivedTasksKeys } from "@/entities/task/hooks/use-archived-tasks";
+import { archivedTasksKeys } from "@/entities/task/hooks/useArchivedTasks";
 
 export const weekKeys = {
   all: ["weeks"] as const,
@@ -73,7 +73,7 @@ export const useUpdateTask = () => {
 
 export const useDeleteTask = () => {
   return useMutation({
-    mutationFn: ({ taskId }: { taskId: string; weekId: string }) =>
+    mutationFn: ({ taskId }: { taskId: string; weekId?: string }) =>
       taskApi.deleteTask(taskId),
   });
 };
