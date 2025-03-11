@@ -58,6 +58,7 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     // Оптимистичное обновление UI
     updateWeekTasks((tasks) => [...tasks, newTask]);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, createdAt, ...taskData } = newTask;
 
     // Отправляем запрос на сервер без временного id
@@ -85,10 +86,7 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
 
   const deleteExistingTask = (taskId: string) => {
     updateWeekTasks((tasks) => tasks.filter((task) => task.id !== taskId));
-    updateArchivedTasks((tasks) => [
-      ...tasks,
-      getTaskState().archivedTasks.find((task) => task.id === taskId)!,
-    ]);
+    updateArchivedTasks((tasks) => tasks.filter((task) => task.id !== taskId));
     deleteTask({ taskId, weekId });
   };
 

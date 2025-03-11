@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { QueryClient } from "@tanstack/react-query";
 import { Task } from "../models/task.model";
 import { weekKeys } from "@/entities/weeks/hooks/use-week";
