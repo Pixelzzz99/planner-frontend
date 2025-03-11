@@ -1,5 +1,11 @@
 import { userApi } from "@/entities/user/api/user.api";
-import { AuthOptions, Session, SessionStrategy, DefaultUser } from "next-auth";
+import {
+  AuthOptions,
+  Session,
+  SessionStrategy,
+  DefaultUser,
+  DefaultSession,
+} from "next-auth";
 import { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -12,6 +18,13 @@ declare module "next-auth/jwt" {
 declare module "next-auth" {
   interface User extends DefaultUser {
     accessToken?: string;
+  }
+  interface Session {
+    user?: {
+      id?: string;
+      email?: string | null;
+      accessToken?: string;
+    } & DefaultSession["user"];
   }
 }
 
