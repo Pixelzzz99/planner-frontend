@@ -8,13 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+interface CategoryFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  categoryForm: { id?: string; name: string };
+  setCategoryForm: React.Dispatch<
+    React.SetStateAction<{ id?: string; name: string }>
+  >;
+  onSubmit: () => void;
+}
+
 export function CategoryFormModal({
   isOpen,
   onClose,
   categoryForm,
   setCategoryForm,
   onSubmit,
-}) {
+}: CategoryFormProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>

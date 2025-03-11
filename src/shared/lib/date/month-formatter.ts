@@ -1,5 +1,5 @@
 export const getMonthName = (monthNumber: string | number): string => {
-  const months = {
+  const months: { [key: string]: string } = {
     "1": "Январь",
     "2": "Февраль",
     "3": "Март",

@@ -21,7 +21,7 @@ export function useWeekFocuses(weekPlanId: string) {
       id,
       data,
     }: {
-      id: number;
+      id: string;
       data: Partial<CreateWeekFocusDTO>;
     }) => weekFocusApi.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey }),

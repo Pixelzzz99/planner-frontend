@@ -20,7 +20,7 @@ export const weekFocusApi = {
   },
 
   update: async (
-    id: number,
+    id: string,
     data: Partial<CreateWeekFocusDTO>
   ): Promise<WeekFocus> => {
     const response = await api.put(`/weekly-focus/${id}`, data);

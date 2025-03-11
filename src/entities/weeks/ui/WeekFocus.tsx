@@ -12,7 +12,7 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
   const { focuses, isLoading, createFocus, updateFocus } =
     useWeekFocuses(weekPlanId);
 
-  const handleSaveFocus = (id: number, newText: string) => {
+  const handleSaveFocus = (id: string, newText: string) => {
     updateFocus({ id, data: { title: newText } });
   };
 

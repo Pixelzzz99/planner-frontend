@@ -10,14 +10,7 @@ interface Props {
 }
 
 export function SortableContent({ task, onEdit, onDelete }: Props) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { setNodeRef, transform, transition } = useSortable({
     id: task.id,
     data: {
       type: "Task",
@@ -37,8 +30,6 @@ export function SortableContent({ task, onEdit, onDelete }: Props) {
         containerId={String(task.day)}
         onEdit={onEdit}
         onDelete={onDelete}
-        isDragging={isDragging}
-        dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
   );

@@ -8,7 +8,10 @@ import {
 import { Category } from "../model/category.model";
 
 export const useCategoriesWidget = (userId: string) => {
-  const [categoryForm, setCategoryForm] = useState({ id: "", name: "" });
+  const [categoryForm, setCategoryForm] = useState<{
+    id?: string;
+    name: string;
+  }>({ id: "", name: "" });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: categories = [] } = useCategories(userId);
