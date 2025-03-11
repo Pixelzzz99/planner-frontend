@@ -1,6 +1,14 @@
 import { api } from "@/shared/api/api";
 import { CreateTaskDTO, Task } from "../models/task.model";
 
+interface MoveTaskDTO {
+  weekPlanId?: string;
+  day?: number;
+  date?: string;
+  toArchive?: boolean;
+  archiveReason?: string;
+}
+
 export const taskApi = {
   getTasks: async (weekId: string): Promise<Task[]> => {
     const res = await api.get(`/tasks/${weekId}`);
@@ -22,5 +30,15 @@ export const taskApi = {
 
   deleteTask: async (taskId: string): Promise<void> => {
     await api.delete(`/tasks/${taskId}`);
+  },
+
+  getArchivedTasks: async (): Promise<Task[]> => {
+    const res = await api.get("/tasks/archived");
+    return res.data;
+  },
+
+  moveTask: async (taskId: string, data: MoveTaskDTO): Promise<Task> => {
+    const res = await api.patch(`/tasks/${taskId}/move`, data);
+    return res.data;
   },
 };

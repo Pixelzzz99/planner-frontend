@@ -17,7 +17,6 @@ import { fetchYearPlan } from "@/entities/year-plan/api/year-plan.api";
 import { useSession } from "next-auth/react";
 import { Loader } from "@/shared/ui/loader";
 import { MonthsPlan } from "@/entities/year-plan/model/year-plan.model";
-import { TaskArchive } from "@/entities/task/ui/TaskArchive";
 
 export default function YearDashboardPage() {
   const { data: session } = useSession();
@@ -28,7 +27,7 @@ export default function YearDashboardPage() {
   const [selectedMonthId, setSelectedMonthId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [archivedTasks] = useState([]);
+  // const [archivedTasks] = useState([]);
 
   const isLoading = !yearData.length;
 
@@ -111,10 +110,10 @@ export default function YearDashboardPage() {
               </div>
             </div>
           </div>
-
+          {/* 
           <div className="mt-8">
             <TaskArchive archivedTasks={archivedTasks} />
-          </div>
+          </div> */}
         </>
       )}
 

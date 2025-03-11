@@ -1,17 +1,21 @@
 import { userApi } from "@/entities/user/api/user.api";
-import { Session, SessionStrategy } from "next-auth";
+import { AuthOptions, Session, SessionStrategy, DefaultUser } from "next-auth";
 import { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-interface CustomSession extends Session {
-  user: {
-    id: string;
-    email: string;
-    accessToken: string;
-  };
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken?: string;
+  }
 }
 
-export const authOptions = {
+declare module "next-auth" {
+  interface User extends DefaultUser {
+    accessToken?: string;
+  }
+}
+
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -47,16 +51,16 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user: any; trigger?: string }) {
+    async jwt({ token, user }) {
       if (user) {
         token.accessToken = user.accessToken;
-        token.userId = user.id;
+        token.sub = user.id;
         token.email = user.email;
       }
       return token;
     },
-    async session({ session, token }: { session: any; token: JWT }) {
-      if (!token) return null;
+    async session({ session, token }: { session: Session; token: JWT }) {
+      if (!token) return session;
 
       try {
         if (token.accessToken) {
@@ -65,15 +69,15 @@ export const authOptions = {
           return {
             ...session,
             user: {
-              id: token.userId,
+              id: token.sub,
               email: token.email,
               accessToken: token.accessToken,
             },
-          } as CustomSession;
+          } as Session;
         }
-        return null;
+        return session;
       } catch {
-        return null;
+        return session;
       }
     },
   },
