@@ -24,19 +24,15 @@ export const LeftSidePage = ({
   } = useCategoriesWidget(userId);
   return (
     <div className="lg:col-span-3 space-y-6">
-      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-        <WeekFocus weekPlanId={weekId} />
-      </div>
+      <WeekFocus weekPlanId={weekId} />
 
-      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-        <TaskCategories
-          categories={categories}
-          onAddCategory={handleOpenAddCategory}
-          onEditCategory={handleOpenEditCategory}
-          onDeleteCategory={handleDeleteCategory}
-          isLoading={isCategoriesLoading}
-        />
-      </div>
+      <TaskCategories
+        categories={categories}
+        onAddCategory={handleOpenAddCategory}
+        onEditCategory={handleOpenEditCategory}
+        onDeleteCategory={handleDeleteCategory}
+        isLoading={isCategoriesLoading}
+      />
 
       <CategoryFormModal
         isOpen={isModalOpen}

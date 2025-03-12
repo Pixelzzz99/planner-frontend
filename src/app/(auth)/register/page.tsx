@@ -37,10 +37,11 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-muted">
+      <h1 className="text-4xl font-bold mb-8 text-foreground">Calendrium</h1>
       <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl">
-        <h1 className="text-3xl font-bold text-center text-foreground mb-8">
+        <h2 className="text-3xl font-bold text-center text-foreground mb-8">
           Создать аккаунт
-        </h1>
+        </h2>
 
         <div className="space-y-5">
           {error && (

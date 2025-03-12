@@ -3,6 +3,7 @@ import { weekApi } from "../api/week.api";
 import { taskApi } from "@/entities/task/api/task.api";
 import { CreateTaskDTO } from "@/entities/task/models/task.model";
 import { archivedTasksKeys } from "@/entities/task/hooks/useArchivedTasks";
+import { yearPlanKeys } from "@/entities/year-plan/hooks/useYearPlan";
 
 export const weekKeys = {
   all: ["weeks"] as const,
@@ -26,6 +27,7 @@ export const useCreateWeek = () => {
     mutationFn: weekApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: weekKeys.all });
+      queryClient.invalidateQueries({ queryKey: yearPlanKeys.all });
     },
   });
 };
@@ -37,6 +39,7 @@ export const useDeleteWeek = () => {
     mutationFn: weekApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: weekKeys.all });
+      queryClient.invalidateQueries({ queryKey: yearPlanKeys.all });
     },
   });
 };
