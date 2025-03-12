@@ -55,7 +55,10 @@ export default function YearDashboardPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 py-6">
-      <YearPageHeader />
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Calendrium</h1>
+        <YearPageHeader />
+      </div>
 
       {isLoading ? (
         <Loader />
