@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,30 +12,23 @@ import {
 import { YearPageHeader } from "@/widgets/year/YearPageHeader";
 import { MonthCard } from "@/entities/month/ui/MonthCard";
 import { GoalsSection } from "@/widgets/goals/GoalsSection";
-import { weekApi } from "@/entities/weeks/api/week.api";
-import { fetchYearPlan } from "@/entities/year-plan/api/year-plan.api";
 import { useSession } from "next-auth/react";
 import { Loader } from "@/shared/ui/loader";
-import { MonthsPlan } from "@/entities/year-plan/model/year-plan.model";
+import { useYearPlan } from "@/entities/year-plan/hooks/useYearPlan";
+import { useCreateWeek, useDeleteWeek } from "@/entities/weeks/hooks/use-week";
 
 export default function YearDashboardPage() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  const [yearData, setYearData] = useState<MonthsPlan[]>([]);
+  const { data: yearData, isLoading } = useYearPlan(userId);
+  const createWeekMutation = useCreateWeek();
+  const deleteWeekMutation = useDeleteWeek();
+
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonthId, setSelectedMonthId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  // const [archivedTasks] = useState([]);
-
-  const isLoading = !yearData.length;
-
-  useEffect(() => {
-    if (userId) {
-      fetchYearPlan(userId).then((data) => setYearData(data[0].months));
-    }
-  }, [userId]);
 
   const handleOpenAddWeekModal = (monthId: string) => {
     setSelectedMonthId(monthId);
@@ -47,32 +40,17 @@ export default function YearDashboardPage() {
   const handleAddWeek = async () => {
     if (!selectedMonthId) return;
 
-    const newWeek = await weekApi.create({
+    await createWeekMutation.mutateAsync({
       monthPlanId: selectedMonthId,
       startDate,
       endDate,
     });
 
-    const updated = yearData.map((month) => {
-      if (month.id === selectedMonthId) {
-        return { ...month, weekPlans: [...month.weekPlans, newWeek] };
-      }
-      return month;
-    });
-
-    setYearData(updated);
     setIsOpen(false);
   };
 
-  const handleDeleteWeek = async (weekId: string) => {
-    await weekApi.delete(weekId);
-    const updated = yearData.map((month) => {
-      return {
-        ...month,
-        weekPlans: month.weekPlans.filter((week) => week.id !== weekId),
-      };
-    });
-    setYearData(updated);
+  const handleDeleteWeek = (weekId: string) => {
+    deleteWeekMutation.mutate(weekId);
   };
 
   return (
@@ -97,7 +75,7 @@ export default function YearDashboardPage() {
                 </h2>
                 <div className="overflow-x-auto">
                   <div className="flex flex-nowrap gap-6 pb-4">
-                    {yearData.map((month) => (
+                    {yearData?.map((month) => (
                       <MonthCard
                         key={month.id}
                         month={month}
@@ -110,10 +88,6 @@ export default function YearDashboardPage() {
               </div>
             </div>
           </div>
-          {/* 
-          <div className="mt-8">
-            <TaskArchive archivedTasks={archivedTasks} />
-          </div> */}
         </>
       )}
 
