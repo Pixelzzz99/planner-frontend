@@ -10,7 +10,8 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-between mb-6 items-center">
+        <h1 className="text-2xl font-bold text-foreground">Calendrium</h1>
         <ThemeToggle />
       </div>
       <div className="space-y-8">
