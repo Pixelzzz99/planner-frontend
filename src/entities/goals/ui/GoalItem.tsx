@@ -37,16 +37,16 @@ export function GoalItem({
   onStatusChange,
 }: GoalItemProps) {
   return (
-    <div className="group flex items-center gap-4 p-3 hover:bg-accent/50 rounded-lg transition-colors">
-      <div className="flex-1 flex items-center gap-3">
+    <div className="group flex items-center gap-4 p-3 hover:bg-accent/50 rounded-lg transition-colors overflow-hidden">
+      <div className="flex-1 min-w-0 flex items-center gap-3">
         <EditableText
           text={goal.title}
           onSave={onUpdate}
-          className="text-foreground hover:bg-accent px-2 py-1 rounded-md flex-1"
+          className="text-foreground hover:bg-accent px-2 py-1 rounded-md w-full"
         />
       </div>
 
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 shrink-0">
         <Select value={goal.status} onValueChange={onStatusChange}>
           <SelectTrigger
             className={`h-7 px-3 text-sm font-medium rounded-full border-none ${

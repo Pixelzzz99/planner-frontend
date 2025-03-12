@@ -11,7 +11,7 @@ interface WeekPageHeaderProps {
 export const WeekPageHeader = ({ onBack, weekPlan }: WeekPageHeaderProps) => {
   return (
     <div className="fixed top-0 left-0 right-0 bg-background z-10 border-b">
-      <div className="container mx-auto px-6 py-4">
+      <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
