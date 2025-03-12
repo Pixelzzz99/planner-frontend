@@ -29,22 +29,24 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
   }
 
   return (
-    <div className="w-full p-4 rounded-md bg-card border border-border shadow-sm space-y-4">
+    <div className="w-full p-4 rounded-md bg-card border border-border shadow-sm space-y-4 overflow-hidden">
       <h2 className="font-semibold text-lg mb-2 text-foreground">
         Фокусы недели
       </h2>
       <div className="space-y-2">
         {focuses.map((focus) => (
-          <div key={focus.id} className="flex items-center justify-between">
-            <EditableText
-              text={focus.title}
-              onSave={(newText) => handleSaveFocus(focus.id, newText)}
-              className="text-foreground hover:bg-accent px-2 py-1 rounded-md"
-            />
+          <div key={focus.id} className="flex items-center gap-2 pr-2">
+            <div className="flex-1 min-w-0">
+              <EditableText
+                text={focus.title}
+                onSave={(newText) => handleSaveFocus(focus.id, newText)}
+                className="text-foreground hover:bg-accent px-2 py-1 rounded-md w-full"
+              />
+            </div>
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+              className="h-8 w-8 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50"
               onClick={() => handleDeleteFocus(focus.id)}
             >
               <Trash2 size={16} />
