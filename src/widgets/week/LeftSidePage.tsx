@@ -1,4 +1,5 @@
 import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories-widget";
+import { CategoryFormModal } from "@/entities/categories/ui/CategoryFormModal";
 import { TaskCategories } from "@/entities/categories/ui/TaskCategories";
 import { WeekFocus } from "@/entities/weeks/ui/WeekFocus";
 
@@ -11,6 +12,11 @@ export const LeftSidePage = ({
 }) => {
   const {
     categories,
+    categoryForm,
+    setCategoryForm,
+    handleSubmit: handleSubmitCategory,
+    isModalOpen,
+    setIsModalOpen,
     handleOpenAddModal: handleOpenAddCategory,
     handleOpenEditModal: handleOpenEditCategory,
     handleDelete: handleDeleteCategory,
@@ -31,6 +37,14 @@ export const LeftSidePage = ({
           isLoading={isCategoriesLoading}
         />
       </div>
+
+      <CategoryFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        categoryForm={categoryForm}
+        setCategoryForm={setCategoryForm}
+        onSubmit={handleSubmitCategory}
+      />
     </div>
   );
 };

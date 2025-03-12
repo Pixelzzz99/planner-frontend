@@ -23,7 +23,6 @@ import { WeekPageHeader } from "@/entities/weeks/ui/WeekPageHeader";
 import { LeftSidePage } from "@/widgets/week/LeftSidePage";
 
 //categories ui
-import { CategoryFormModal } from "@/entities/categories/ui/CategoryFormModal";
 import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories-widget";
 
 //tasks ui
@@ -42,14 +41,7 @@ export default function WeekPage() {
   const weekId = searchParams?.get("weekId") ?? "";
   const userId = useUserId();
 
-  const {
-    categories,
-    categoryForm,
-    setCategoryForm,
-    isModalOpen: isCategoryModalOpen,
-    setIsModalOpen: setIsCategoryModalOpen,
-    handleSubmit: handleSubmitCategory,
-  } = useCategoriesWidget(userId);
+  const { categories } = useCategoriesWidget(userId);
 
   const {
     weekPlan,
@@ -225,13 +217,6 @@ export default function WeekPage() {
         onSubmit={handleSubmitTask}
         onArchive={() => {}}
         categories={categories}
-      />
-      <CategoryFormModal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        categoryForm={categoryForm}
-        setCategoryForm={setCategoryForm}
-        onSubmit={handleSubmitCategory}
       />
     </div>
   );
