@@ -1,11 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { weekKeys } from "@/entities/weeks/hooks/use-week";
 import {
   useCreateTask,
   useUpdateTask,
   useDeleteTask,
   useMoveTask,
-  weekKeys,
-} from "@/entities/weeks/hooks/use-week";
+} from "@/entities/weeks/hooks/use-tasks";
 import { CreateTaskDTO, UpdateTaskDTO, Task } from "../models/task.model";
 import { archivedTasksKeys } from "./useArchivedTasks";
 import { TaskState } from "../types/task-operations";
@@ -90,164 +90,47 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     deleteTask({ taskId, weekId });
   };
 
-  const moveToArchive = (task: Task) => {
-    try {
-      // Оптимистичное обновление UI
-      updateWeekTasks((tasks) => tasks.filter((t) => t.id !== task.id));
-      updateArchivedTasks((tasks) => [
-        { ...task, isArchived: true, archivedAt: new Date().toISOString() },
-        ...tasks,
-      ]);
-
-      // Запрос на сервер
-      moveTask({
-        taskId: task.id,
-        data: {
-          toArchive: true,
-          archiveReason: "Moved to archive via drag-and-drop",
-        },
-      });
-    } catch (error) {
-      // Откат изменений при ошибке
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-      queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
-      throw error;
-    }
-  };
-
-  const restoreFromArchive = (task: Task, destinationDay: number) => {
-    try {
-      // Оптимистичное обновление UI
-      updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== task.id));
-      updateWeekTasks((tasks) => [
-        ...tasks,
-        { ...task, day: destinationDay, isArchived: false },
-      ]);
-
-      // Запрос на сервер
-      moveTask({
-        taskId: task.id,
-        data: {
-          weekPlanId: weekId,
-          day: destinationDay,
-          date: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      // Откат изменений при ошибке
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-      queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
-      throw error;
-    }
-  };
-
-  const moveBetweenDays = (task: Task, destinationDay: number) => {
-    try {
-      // Оптимистичное обновление UI
-      updateWeekTasks((tasks) =>
-        tasks.map((t) => (t.id === task.id ? { ...t, day: destinationDay } : t))
-      );
-
-      // Запрос на сервер
-      moveTask({
-        taskId: task.id,
-        data: {
-          weekPlanId: weekId,
-          day: destinationDay,
-          date: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      // Откат изменений при ошибке
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-      throw error;
-    }
-  };
-
-  // Только локальное обновление кэша без запроса на сервер
-  const updateTaskPositionInCache = (
+  const commitTaskPosition = async (
     taskId: string,
     destinationDay: number,
-    index: number,
-    sourceContainerId: string
+    targetTaskId: string,
+    position: "before" | "after"
   ) => {
-    const { weekTasks, archivedTasks } = getTaskState();
-    const task =
-      sourceContainerId === "-1"
-        ? archivedTasks.find((t) => t.id === taskId)
-        : weekTasks.find((t) => t.id === taskId);
+    const { weekTasks } = getTaskState();
+    const taskToMove = weekTasks.find((t) => t.id === taskId);
 
-    if (!task) return;
+    if (!taskToMove) return;
 
-    // Сохраняем задачу в локальном хранилище перед обновлением кэша
-    sessionStorage.setItem(`temp_task_${taskId}`, JSON.stringify(task));
+    // Оптимистичное обновление
+    updateWeekTasks((tasks) => {
+      const newTasks = tasks.filter((t) => t.id !== taskId);
+      const targetIndex = newTasks.findIndex((t) => t.id === targetTaskId);
+      const insertIndex = position === "after" ? targetIndex + 1 : targetIndex;
 
-    if (destinationDay === -1 && sourceContainerId !== "-1") {
-      // День -> Архив (только кэш)
-      updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
-      updateArchivedTasks((tasks) => [
-        { ...task, isArchived: true, archivedAt: new Date().toISOString() },
-        ...tasks,
-      ]);
-    } else if (destinationDay !== -1 && sourceContainerId === "-1") {
-      // Архив -> День (только кэш)
-      updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== taskId));
-      updateWeekTasks((tasks) => [
-        ...tasks,
-        { ...task, day: destinationDay, isArchived: false },
-      ]);
-    } else if (sourceContainerId !== "-1" && destinationDay !== -1) {
-      // День -> День (только кэш)
-      updateWeekTasks((tasks) =>
-        tasks.map((t) => (t.id === taskId ? { ...t, day: destinationDay } : t))
-      );
-    }
-  };
+      newTasks.splice(insertIndex, 0, { ...taskToMove, day: destinationDay });
 
-  // Финальное сохранение на сервере
-  const commitTaskPosition = (taskId: string, destinationDay: number) => {
-    // Пытаемся получить задачу из временного хранилища
-    const tempTask = sessionStorage.getItem(`temp_task_${taskId}`);
-    const task = tempTask ? JSON.parse(tempTask) : null;
-
-    // Очищаем временное хранилище
-    sessionStorage.removeItem(`temp_task_${taskId}`);
-
-    if (!task) {
-      console.error("Task not found in temporary storage");
-      // Откатываем изменения
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-      queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
-      return;
-    }
+      return newTasks.map((task, index) => ({
+        ...task,
+        position: (index + 1) * 1000,
+      }));
+    });
 
     try {
-      if (destinationDay === -1) {
-        // В архив
-        moveTask({
-          taskId: task.id,
-          data: {
-            toArchive: true,
-            archiveReason: "Moved to archive via drag-and-drop",
-          },
-        });
-      } else {
-        // В день (из архива или из другого дня)
-        moveTask({
-          taskId: task.id,
-          data: {
-            weekPlanId: weekId,
-            day: destinationDay,
-            date: new Date().toISOString(),
-            toArchive: false,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Move task failed:", error);
-      // Откатываем изменения в кэше
+      await moveTask({
+        taskId: taskId,
+        data: {
+          weekPlanId: weekId,
+          day: destinationDay,
+          toArchive: false,
+          position: position,
+          targetTaskId: targetTaskId,
+          date: new Date().toISOString(),
+        },
+        weekId,
+      });
+    } catch {
+      // В случае ошибки откатываем изменения
       queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-      queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
     }
   };
 
@@ -255,10 +138,6 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     createNewTask,
     updateExistingTask,
     deleteExistingTask,
-    moveToArchive,
-    restoreFromArchive,
-    moveBetweenDays,
-    updateTaskPositionInCache,
     commitTaskPosition,
   };
 };

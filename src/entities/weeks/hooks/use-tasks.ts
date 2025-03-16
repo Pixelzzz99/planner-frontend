@@ -38,27 +38,32 @@ export const useUpdateTask = () => {
 };
 
 export const useDeleteTask = () => {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId }: { taskId: string; weekId: string }) =>
       taskApi.deleteTask(taskId),
-    onSuccess: (_, { weekId }) => {
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-      queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
-    },
   });
 };
 
 export const useMoveTask = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: ({ taskId, data }: { taskId: string; data: MoveTaskDto }) =>
-      taskApi.moveTask(taskId, data),
-    onSuccess: () => {
-      // Инвалидируем все потенциально затронутые запросы
-      queryClient.invalidateQueries({ queryKey: weekKeys.all });
-      queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
+    mutationFn: ({
+      taskId,
+      data,
+    }: {
+      taskId: string;
+      data: MoveTaskDto;
+      weekId: string;
+    }) => taskApi.moveTask(taskId, data),
+    onError: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: weekKeys.plan(variables.weekId),
+      });
+    },
+    onSettled: (_, __, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: weekKeys.plan(variables.weekId),
+      });
     },
   });
 };

@@ -1,7 +1,9 @@
-import { useDraggable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Pencil, Trash2 } from "lucide-react";
 import { Task } from "../models/task.model";
+import { CSSProperties } from "react";
 
 interface TaskCardProps {
   task: Task;
@@ -16,7 +18,14 @@ export function TaskCard({
   onEdit,
   onDelete,
 }: TaskCardProps) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: task.id,
     data: {
       type: "Task",
@@ -24,10 +33,27 @@ export function TaskCard({
       container: containerId,
     },
   });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    position: "relative",
+    ["::before" as string]: isDragging
+      ? {
+          content: '""',
+          position: "absolute",
+          left: 0,
+          right: 0,
+          height: "2px",
+          background: "var(--primary)",
+          bottom: "-1px",
+        }
+      : undefined,
+  };
 
   return (
     <div
       ref={setNodeRef}
+      style={style}
       className={`
         group p-3 w-full relative
         rounded-lg hover:bg-accent border border-border mb-auto 

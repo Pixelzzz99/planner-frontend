@@ -4,7 +4,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
   defaultDropAnimation,
   PointerSensor,
   useSensor,
@@ -12,6 +11,9 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverEvent,
+  closestCenter,
+  Active,
+  Over,
 } from "@dnd-kit/core";
 
 //constants
@@ -69,7 +71,7 @@ export default function WeekPage() {
     return grouped;
   }, [tasks]);
 
-  const { updateTaskPositionInCache, commitTaskPosition } = useTaskMutations({
+  const { commitTaskPosition } = useTaskMutations({
     weekId,
   });
 
@@ -95,43 +97,42 @@ export default function WeekPage() {
     }
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
+  // const handleDragOver = (event: DragOverEvent) => {};
 
-    const task = active.data.current?.task as Task;
-    if (!task) return;
-
-    const sourceId = active.data.current?.container;
-    const targetId = over.id;
-
-    if (!sourceId || !targetId) return;
-    if (sourceId === targetId) return;
-
-    const destinationDay =
-      targetId === "-1" ? -1 : parseInt(targetId as string);
-    if (targetId === "-1" || !isNaN(destinationDay)) {
-      updateTaskPositionInCache(task.id, destinationDay, 0, sourceId as string);
-    }
+  const calculateRelativePosition = (
+    active: Active,
+    over: Over
+  ): "before" | "after" => {
+    const activeTask = active.data.current?.task as Task;
+    const overTask = over.data.current?.task as Task;
+    return activeTask.position > overTask.position ? "before" : "after";
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || !activeSourceId) return;
+    if (!over) return;
 
-    const task = active.data.current?.task as Task;
-    if (!task) return;
+    const activeTask = active.data.current?.task as Task;
+    if (!activeTask) return;
+    const overTask = over.data.current?.task as Task;
 
-    // Изменяем здесь: получаем targetId из over.id напрямую
-    const targetId = String(over.id);
-
-    if (!targetId || activeSourceId === targetId) return;
-
-    try {
-      const destinationDay = targetId === "-1" ? -1 : parseInt(targetId);
-      commitTaskPosition(task.id, destinationDay);
-    } catch (error) {
-      console.error("Failed to move task:", error);
+    if (activeTask.day !== overTask.day) {
+      commitTaskPosition(
+        activeTask.id,
+        overTask.day,
+        overTask.id,
+        calculateRelativePosition(active, over)
+      );
+    } else if (
+      activeTask.position !== overTask.position &&
+      activeTask.day === overTask.day
+    ) {
+      commitTaskPosition(
+        activeTask.id,
+        activeTask.day,
+        overTask.id,
+        calculateRelativePosition(active, over)
+      );
     }
 
     setActiveTask(null);
@@ -160,9 +161,9 @@ export default function WeekPage() {
           <div className="lg:col-span-9">
             <DndContext
               sensors={sensors}
-              collisionDetection={closestCorners}
+              collisionDetection={closestCenter}
               onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
+              // onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
               <div className="grid grid-cols-1 gap-6">

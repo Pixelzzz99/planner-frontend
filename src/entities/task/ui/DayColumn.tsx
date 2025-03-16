@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { TaskCard } from "./TaskCard";
 import { Task } from "../models/task.model";
-import React from "react";
+import React, { Fragment, useMemo } from "react";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { DragIndicator } from "./DragIndicator";
 
 interface DayColumnProps {
   day: { id: number; label: string; tasks: Task[]; color: string };
@@ -18,13 +23,17 @@ export function DayColumn({
   openEditTask,
   handleDeleteTask,
 }: DayColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
+  const { isOver } = useDroppable({
     id: String(day.id),
   });
 
+  // Сортируем задачи по позиции
+  const sortedTasks = useMemo(() => {
+    return [...day.tasks].sort((a, b) => a.position - b.position);
+  }, [day.tasks]);
+
   return (
     <div
-      ref={setNodeRef}
       className={`flex-shrink-0 w-[250px] rounded-xl shadow-sm border border-border min-h-[200px] ${
         isOver ? "bg-accent/50" : day.color
       }`}
@@ -37,15 +46,22 @@ export function DayColumn({
 
       <div className="p-3 w-full">
         <div className="space-y-3 w-full">
-          {day.tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              containerId={String(day.id)}
-              onEdit={openEditTask}
-              onDelete={handleDeleteTask}
-            />
-          ))}
+          <SortableContext
+            id={String(day.id)}
+            items={day.tasks}
+            strategy={verticalListSortingStrategy}
+          >
+            {sortedTasks.map((task) => (
+              <Fragment key={task.id}>
+                <TaskCard
+                  task={task}
+                  containerId={String(day.id)}
+                  onEdit={openEditTask}
+                  onDelete={handleDeleteTask}
+                />
+              </Fragment>
+            ))}
+          </SortableContext>
         </div>
       </div>
 
