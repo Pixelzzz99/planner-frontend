@@ -27,11 +27,21 @@ export function DayColumn({
   handleDeleteTask,
   dropLine,
 }: DayColumnProps) {
-  const { isOver } = useDroppable({
+  // Находим последнюю задачу в дне
+  const lastTask = useMemo(() => {
+    if (day.tasks.length === 0) return null;
+    return [...day.tasks].sort((a, b) => b.position - a.position)[0];
+  }, [day.tasks]);
+
+  const { setNodeRef, isOver } = useDroppable({
     id: String(day.id),
+    data: {
+      container: String(day.id),
+      type: "day-column",
+      task: lastTask, // Передаем последнюю задачу, если она есть
+    },
   });
 
-  // Сортируем задачи по позиции
   const sortedTasks = useMemo(() => {
     return [...day.tasks].sort((a, b) => a.position - b.position);
   }, [day.tasks]);
@@ -48,8 +58,13 @@ export function DayColumn({
         </h2>
       </div>
 
-      <div className="p-3 w-full">
-        <div className="space-y-3 w-full">
+      {/* Делаем всю область дня droppable */}
+      <div
+        ref={setNodeRef}
+        className="p-3 w-full min-h-[150px] flex flex-col"
+        data-container={day.id}
+      >
+        <div className="space-y-3 w-full flex-1">
           <SortableContext
             id={String(day.id)}
             items={day.tasks}
@@ -73,15 +88,15 @@ export function DayColumn({
                   )}
               </div>
             ))}
-            {/* Индикатор для пустого дня */}
-            {dropLine.targetId === String(day.id) && (
-              <div className="h-0.5 bg-primary rounded-full my-2" />
-            )}
           </SortableContext>
+          {/* Индикатор для пустого дня */}
+          {dropLine.targetId === String(day.id) && (
+            <div className="h-0.5 bg-primary rounded-full my-2" />
+          )}
         </div>
       </div>
 
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border mt-auto">
         <Button
           variant="ghost"
           className="w-full justify-start text-foreground hover:text-foreground/80"

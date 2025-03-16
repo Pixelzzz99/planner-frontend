@@ -89,6 +89,15 @@ export default function WeekPage() {
   // Добавляем стейт для хранения начального контейнера
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
 
+  // Добавляем состояние для индикатора
+  const [dropLine, setDropLine] = useState<{
+    targetId: string | null;
+    position: "before" | "after" | null;
+  }>({
+    targetId: null,
+    position: null,
+  });
+
   const handleDragStart = (event: DragStartEvent) => {
     const task = event.active.data.current?.task as Task;
     if (task) {
@@ -116,13 +125,17 @@ export default function WeekPage() {
     const activeTask = active.data.current?.task as Task;
     const overTask = over.data.current?.task as Task;
     const overContainer = over.data.current?.container;
+    const isOverContainer = over.data.current?.type === "day-column";
 
     // Если навели над пустым днем
-    if (!overTask && overContainer) {
-      setDropLine({
-        targetId: overContainer as string,
-        position: "after",
-      });
+    if (isOverContainer && overContainer) {
+      const targetDay = overContainer as string;
+      if (targetDay !== String(activeTask.day)) {
+        setDropLine({
+          targetId: targetDay,
+          position: "after",
+        });
+      }
       return;
     }
 
@@ -146,15 +159,35 @@ export default function WeekPage() {
     const activeTask = active.data.current?.task as Task;
     if (!activeTask) return;
 
-    const overContainer = over.data.current?.container as string;
-    const overTask = over.data.current?.task as Task;
+    const overData = over.data.current;
+    const overContainer = overData?.container;
+    const overTask = overData?.task as Task;
+    const isOverContainer = overData?.type === "day-column";
+
+    // Если перетаскиваем в день
+    if (isOverContainer) {
+      const targetDay = parseInt(overContainer as string);
+      if (!isNaN(targetDay) && targetDay !== activeTask.day) {
+        if (overTask) {
+          // Если в дне есть задачи, добавляем после последней
+          commitTaskPosition(activeTask.id, targetDay, overTask.id, "after");
+        } else {
+          // Если день пустой
+          commitTaskPosition(activeTask.id, targetDay);
+        }
+      }
+      setDropLine({ targetId: null, position: null });
+      return;
+    }
 
     // Если перетаскиваем в пустой день (над контейнером, а не над задачей)
     if (!overTask && overContainer) {
+      console.log("here");
       const targetDay = parseInt(overContainer);
       if (!isNaN(targetDay) && targetDay !== activeTask.day) {
         commitTaskPosition(activeTask.id, targetDay);
       }
+      setDropLine({ targetId: null, position: null }); // Сбрасываем индикатор
       return;
     }
 
