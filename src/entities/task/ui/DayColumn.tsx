@@ -3,18 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { TaskCard } from "./TaskCard";
 import { Task } from "../models/task.model";
-import React, { Fragment, useMemo } from "react";
+import { useMemo } from "react";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { DragIndicator } from "./DragIndicator";
 
 interface DayColumnProps {
   day: { id: number; label: string; tasks: Task[]; color: string };
   openAddTask: (day: number) => void;
   openEditTask: (task: Task) => void;
   handleDeleteTask: (taskId: string) => void;
+  dropLine: {
+    targetId: string | null;
+    position: "before" | "after" | null;
+  };
 }
 
 export function DayColumn({
@@ -22,6 +25,7 @@ export function DayColumn({
   openAddTask,
   openEditTask,
   handleDeleteTask,
+  dropLine,
 }: DayColumnProps) {
   const { isOver } = useDroppable({
     id: String(day.id),
@@ -52,15 +56,27 @@ export function DayColumn({
             strategy={verticalListSortingStrategy}
           >
             {sortedTasks.map((task) => (
-              <Fragment key={task.id}>
+              <div key={task.id} className="relative">
+                {dropLine.targetId === task.id &&
+                  dropLine.position === "before" && (
+                    <div className="absolute -top-2 left-0 right-0 h-0.5 bg-primary rounded-full" />
+                  )}
                 <TaskCard
                   task={task}
                   containerId={String(day.id)}
                   onEdit={openEditTask}
                   onDelete={handleDeleteTask}
                 />
-              </Fragment>
+                {dropLine.targetId === task.id &&
+                  dropLine.position === "after" && (
+                    <div className="absolute -bottom-2 left-0 right-0 h-0.5 bg-primary rounded-full" />
+                  )}
+              </div>
             ))}
+            {/* Индикатор для пустого дня */}
+            {dropLine.targetId === String(day.id) && (
+              <div className="h-0.5 bg-primary rounded-full my-2" />
+            )}
           </SortableContext>
         </div>
       </div>

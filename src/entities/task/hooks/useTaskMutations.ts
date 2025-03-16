@@ -93,8 +93,8 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   const commitTaskPosition = async (
     taskId: string,
     destinationDay: number,
-    targetTaskId: string,
-    position: "before" | "after"
+    targetTaskId?: string,
+    position?: "before" | "after"
   ) => {
     const { weekTasks } = getTaskState();
     const taskToMove = weekTasks.find((t) => t.id === taskId);

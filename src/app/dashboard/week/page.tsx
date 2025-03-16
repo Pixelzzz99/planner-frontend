@@ -10,10 +10,10 @@ import {
   useSensors,
   DragEndEvent,
   DragStartEvent,
-  DragOverEvent,
   closestCenter,
   Active,
   Over,
+  DragOverEvent,
 } from "@dnd-kit/core";
 
 //constants
@@ -97,8 +97,6 @@ export default function WeekPage() {
     }
   };
 
-  // const handleDragOver = (event: DragOverEvent) => {};
-
   const calculateRelativePosition = (
     active: Active,
     over: Over
@@ -108,14 +106,59 @@ export default function WeekPage() {
     return activeTask.position > overTask.position ? "before" : "after";
   };
 
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) {
+      setDropLine({ targetId: null, position: null });
+      return;
+    }
+
+    const activeTask = active.data.current?.task as Task;
+    const overTask = over.data.current?.task as Task;
+    const overContainer = over.data.current?.container;
+
+    // Если навели над пустым днем
+    if (!overTask && overContainer) {
+      setDropLine({
+        targetId: overContainer as string,
+        position: "after",
+      });
+      return;
+    }
+
+    // Если навели над другой задачей
+    if (overTask && activeTask.id !== overTask.id) {
+      const position = calculateRelativePosition(active, over);
+      setDropLine({
+        targetId: overTask.id,
+        position,
+      });
+      return;
+    }
+
+    setDropLine({ targetId: null, position: null });
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
 
     const activeTask = active.data.current?.task as Task;
     if (!activeTask) return;
+
+    const overContainer = over.data.current?.container as string;
     const overTask = over.data.current?.task as Task;
 
+    // Если перетаскиваем в пустой день (над контейнером, а не над задачей)
+    if (!overTask && overContainer) {
+      const targetDay = parseInt(overContainer);
+      if (!isNaN(targetDay) && targetDay !== activeTask.day) {
+        commitTaskPosition(activeTask.id, targetDay);
+      }
+      return;
+    }
+
+    // Обработка перетаскивания между задачами
     if (activeTask.day !== overTask.day) {
       commitTaskPosition(
         activeTask.id,
@@ -137,6 +180,7 @@ export default function WeekPage() {
 
     setActiveTask(null);
     setActiveSourceId(null);
+    setDropLine({ targetId: null, position: null }); // Сбрасываем индикатор
   };
 
   if (isLoading) {
@@ -163,7 +207,7 @@ export default function WeekPage() {
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragStart={handleDragStart}
-              // onDragOver={handleDragOver}
+              onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
               <div className="grid grid-cols-1 gap-6">
@@ -179,6 +223,7 @@ export default function WeekPage() {
                         openAddTask={openAddTask}
                         openEditTask={openEditTask}
                         handleDeleteTask={handleDeleteTask}
+                        dropLine={dropLine} // Передаем информацию об индикаторе
                       />
                     ))}
                   </div>
