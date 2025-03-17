@@ -5,7 +5,6 @@ import {
   UpdateTaskDTO,
   MoveTaskDto,
 } from "@/entities/task/models/task.model";
-import { archivedTasksKeys } from "@/entities/task/hooks/useArchivedTasks";
 import { weekKeys } from "./use-week";
 
 export const useCreateTask = () => {

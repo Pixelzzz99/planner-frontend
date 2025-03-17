@@ -151,16 +151,23 @@ export default function WeekPage() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+
     if (!over) return;
+
+    const resetIndicators = () => {
+      setActiveTask(null);
+      setDropLine({ targetId: null, position: null });
+    };
 
     const activeTask = active.data.current?.task as Task;
     if (!activeTask) return;
 
     const overData = over.data.current;
-    const isOverArchive = overData?.type === "archive";
+    const overType = overData?.type;
+    const overContainer = overData?.container;
+    const overTask = overData?.task as Task;
 
-    // Перетаскивание в архив
-    if (isOverArchive) {
+    if (overType === "archive") {
       commitTaskPosition(
         activeTask.id,
         activeTask.day,
@@ -168,55 +175,63 @@ export default function WeekPage() {
         undefined,
         true
       );
-      setDropLine({ targetId: null, position: null });
+      resetIndicators();
       return;
     }
 
-    const overContainer = overData?.container;
-    const overTask = overData?.task as Task;
-    const isOverContainer = overData?.type === "day-column";
-
-    // Если задача из архива
-    const isFromArchive = activeTask.isArchived;
-
-    // Перетаскивание из архива в день
-    if (isFromArchive && isOverContainer) {
-      const targetDay = parseInt(overContainer as string);
-      if (!isNaN(targetDay)) {
-        commitTaskPosition(activeTask.id, targetDay);
-      }
-      setDropLine({ targetId: null, position: null });
+    if (activeTask.isArchived && overType === "day-column") {
+      handleMoveFromArchiveToDay(activeTask, overContainer);
+      resetIndicators();
       return;
     }
 
-    // Если перетаскиваем в день
-    if (isOverContainer) {
-      const targetDay = parseInt(overContainer as string);
-      if (!isNaN(targetDay) && targetDay !== activeTask.day) {
-        if (overTask) {
-          // Если в дне есть задачи, добавляем после последней
-          commitTaskPosition(activeTask.id, targetDay, overTask.id, "after");
-        } else {
-          // Если день пустой
-          commitTaskPosition(activeTask.id, targetDay);
-        }
-      }
-      setDropLine({ targetId: null, position: null });
+    if (overType === "day-column") {
+      handleMoveToDay(activeTask, overContainer, overTask);
+      resetIndicators();
       return;
     }
 
-    // Если перетаскиваем в пустой день (над контейнером, а не над задачей)
-    if (!overTask && overContainer) {
-      console.log("here");
-      const targetDay = parseInt(overContainer);
-      if (!isNaN(targetDay) && targetDay !== activeTask.day) {
-        commitTaskPosition(activeTask.id, targetDay);
-      }
-      setDropLine({ targetId: null, position: null }); // Сбрасываем индикатор
+    if (overTask) {
+      handleTaskToTaskMove(activeTask, overTask, active, over);
+      resetIndicators();
       return;
     }
 
-    // Обработка перетаскивания между задачами
+    resetIndicators();
+  };
+
+  const handleMoveFromArchiveToDay = (
+    activeTask: Task,
+    overContainer: string | undefined
+  ) => {
+    const targetDay = parseInt(overContainer as string);
+    if (!isNaN(targetDay)) {
+      commitTaskPosition(activeTask.id, targetDay);
+    }
+  };
+
+  const handleMoveToDay = (
+    activeTask: Task,
+    overContainer: string | undefined,
+    overTask: Task | undefined
+  ) => {
+    const targetDay = parseInt(overContainer as string);
+    if (!isNaN(targetDay) && targetDay === activeTask.day) return;
+    if (overTask) {
+      // Если в дне есть задачи, добавляем после последней
+      commitTaskPosition(activeTask.id, targetDay, overTask.id, "after");
+    } else {
+      // Если день пустой
+      commitTaskPosition(activeTask.id, targetDay);
+    }
+  };
+
+  const handleTaskToTaskMove = (
+    activeTask: Task,
+    overTask: Task,
+    active: Active,
+    over: Over
+  ) => {
     if (overTask.isArchived) {
       commitTaskPosition(
         activeTask.id,
@@ -243,9 +258,6 @@ export default function WeekPage() {
         calculateRelativePosition(active, over)
       );
     }
-
-    setActiveTask(null);
-    setDropLine({ targetId: null, position: null }); // Сбрасываем индикатор
   };
 
   if (isLoading) {
