@@ -94,26 +94,55 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     taskId: string,
     destinationDay: number,
     targetTaskId?: string,
-    position?: "before" | "after"
+    position?: "before" | "after",
+    isArchive?: boolean
   ) => {
-    const { weekTasks } = getTaskState();
-    const taskToMove = weekTasks.find((t) => t.id === taskId);
+    const { weekTasks, archivedTasks } = getTaskState();
+    const taskToMove = isArchive
+      ? weekTasks.find((t) => t.id === taskId)
+      : archivedTasks.find((t) => t.id === taskId) ||
+        weekTasks.find((t) => t.id === taskId);
 
     if (!taskToMove) return;
 
     // Оптимистичное обновление
-    updateWeekTasks((tasks) => {
-      const newTasks = tasks.filter((t) => t.id !== taskId);
+    if (isArchive) {
+      // Перемещаем в архив
+      updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
+      updateArchivedTasks((tasks) => [
+        ...tasks,
+        { ...taskToMove, isArchived: true },
+      ]);
+    } else if (taskToMove.isArchived) {
+      // Разархивация
+      updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== taskId));
+      updateWeekTasks((tasks) => {
+        const newTasks = tasks.filter((t) => t.id !== taskId);
+        newTasks.push({
+          ...taskToMove,
+          isArchived: false,
+          day: destinationDay,
+        });
+        return newTasks.map((task, index) => ({
+          ...task,
+          position: (index + 1) * 1000,
+        }));
+      });
+    } else {
+      // Обычное перемещение между днями
+      const newTasks = weekTasks.filter((t) => t.id !== taskId);
       const targetIndex = newTasks.findIndex((t) => t.id === targetTaskId);
       const insertIndex = position === "after" ? targetIndex + 1 : targetIndex;
 
       newTasks.splice(insertIndex, 0, { ...taskToMove, day: destinationDay });
 
-      return newTasks.map((task, index) => ({
-        ...task,
-        position: (index + 1) * 1000,
-      }));
-    });
+      updateWeekTasks(() =>
+        newTasks.map((task, index) => ({
+          ...task,
+          position: (index + 1) * 1000,
+        }))
+      );
+    }
 
     try {
       await moveTask({
@@ -121,16 +150,19 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
         data: {
           weekPlanId: weekId,
           day: destinationDay,
-          toArchive: false,
+          isArchive: isArchive || false,
           position: position,
           targetTaskId: targetTaskId,
           date: new Date().toISOString(),
+          archiveReason: isArchive ? "Задача перемещена в архив" : undefined,
         },
         weekId,
       });
     } catch {
-      // В случае ошибки откатываем изменения
       queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
+      if (isArchive) {
+        queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
+      }
     }
   };
 

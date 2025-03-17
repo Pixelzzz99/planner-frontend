@@ -87,8 +87,6 @@ export default function WeekPage() {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   // Добавляем стейт для хранения начального контейнера
-  const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
-
   // Добавляем состояние для индикатора
   const [dropLine, setDropLine] = useState<{
     targetId: string | null;
@@ -102,7 +100,6 @@ export default function WeekPage() {
     const task = event.active.data.current?.task as Task;
     if (task) {
       setActiveTask(task);
-      setActiveSourceId(event.active.data.current?.container);
     }
   };
 
@@ -160,9 +157,37 @@ export default function WeekPage() {
     if (!activeTask) return;
 
     const overData = over.data.current;
+    const isOverArchive = overData?.type === "archive";
+
+    // Перетаскивание в архив
+    if (isOverArchive) {
+      commitTaskPosition(
+        activeTask.id,
+        activeTask.day,
+        undefined,
+        undefined,
+        true
+      );
+      setDropLine({ targetId: null, position: null });
+      return;
+    }
+
     const overContainer = overData?.container;
     const overTask = overData?.task as Task;
     const isOverContainer = overData?.type === "day-column";
+
+    // Если задача из архива
+    const isFromArchive = activeTask.isArchived;
+
+    // Перетаскивание из архива в день
+    if (isFromArchive && isOverContainer) {
+      const targetDay = parseInt(overContainer as string);
+      if (!isNaN(targetDay)) {
+        commitTaskPosition(activeTask.id, targetDay);
+      }
+      setDropLine({ targetId: null, position: null });
+      return;
+    }
 
     // Если перетаскиваем в день
     if (isOverContainer) {
@@ -192,7 +217,15 @@ export default function WeekPage() {
     }
 
     // Обработка перетаскивания между задачами
-    if (activeTask.day !== overTask.day) {
+    if (overTask.isArchived) {
+      commitTaskPosition(
+        activeTask.id,
+        activeTask.day,
+        undefined,
+        undefined,
+        true
+      );
+    } else if (activeTask.day !== overTask.day) {
       commitTaskPosition(
         activeTask.id,
         overTask.day,
@@ -212,7 +245,6 @@ export default function WeekPage() {
     }
 
     setActiveTask(null);
-    setActiveSourceId(null);
     setDropLine({ targetId: null, position: null }); // Сбрасываем индикатор
   };
 

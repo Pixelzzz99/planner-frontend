@@ -7,7 +7,7 @@ export interface MoveTaskDto {
   weekPlanId?: string;
   day?: number;
   date?: string;
-  toArchive?: boolean;
+  isArchive?: boolean;
   archiveReason?: string;
   targetTaskId?: string;
   position?: "before" | "after";
