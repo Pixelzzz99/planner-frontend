@@ -57,7 +57,6 @@ export function DayColumn({
           {day.label}
         </h2>
       </div>
-
       {/* Делаем всю область дня droppable */}
       <div
         ref={setNodeRef}
@@ -72,30 +71,43 @@ export function DayColumn({
           >
             {sortedTasks.map((task) => (
               <div key={task.id} className="relative">
+                {/* Улучшенный индикатор "before" */}
                 {dropLine.targetId === task.id &&
                   dropLine.position === "before" && (
-                    <div className="absolute -top-2 left-0 right-0 h-0.5 bg-primary rounded-full" />
+                    <div className="absolute -top-2 left-0 right-0 flex items-center justify-center z-10">
+                      <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent rounded-full animate-pulse shadow-sm" />
+                      <div className="absolute h-3 w-3 bg-primary rounded-full left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-md" />
+                    </div>
                   )}
+
                 <TaskCard
                   task={task}
                   containerId={String(day.id)}
                   onEdit={openEditTask}
                   onDelete={handleDeleteTask}
                 />
+
+                {/* Улучшенный индикатор "after" */}
                 {dropLine.targetId === task.id &&
                   dropLine.position === "after" && (
-                    <div className="absolute -bottom-2 left-0 right-0 h-0.5 bg-primary rounded-full" />
+                    <div className="absolute -bottom-2 left-0 right-0 flex items-center justify-center z-10">
+                      <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent rounded-full animate-pulse shadow-sm" />
+                      <div className="absolute h-3 w-3 bg-primary rounded-full left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-md" />
+                    </div>
                   )}
               </div>
             ))}
           </SortableContext>
-          {/* Индикатор для пустого дня */}
+
+          {/* Улучшенный индикатор для пустого дня */}
           {dropLine.targetId === String(day.id) && (
-            <div className="h-0.5 bg-primary rounded-full my-2" />
+            <div className="relative h-1 my-4">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full animate-pulse shadow-sm" />
+              <div className="absolute h-3 w-3 bg-primary rounded-full left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-md" />
+            </div>
           )}
         </div>
       </div>
-
       <div className="p-3 border-t border-border mt-auto">
         <Button
           variant="ghost"

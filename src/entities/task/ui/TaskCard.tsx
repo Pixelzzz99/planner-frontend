@@ -33,27 +33,27 @@ export function TaskCard({
       container: containerId,
     },
   });
-  const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    position: "relative",
-    ["::before" as string]: isDragging
-      ? {
-          content: '""',
-          position: "absolute",
-          left: 0,
-          right: 0,
-          height: "2px",
-          background: "var(--primary)",
-          bottom: "-1px",
-        }
-      : undefined,
-  };
+  // const style: CSSProperties = {
+  //   transform: CSS.Transform.toString(transform),
+  //   transition,
+  //   position: "relative",
+  //   ["::before" as string]: isDragging
+  //     ? {
+  //         content: '""',
+  //         position: "absolute",
+  //         left: 0,
+  //         right: 0,
+  //         height: "2px",
+  //         background: "var(--primary)",
+  //         bottom: "-1px",
+  //       }
+  //     : undefined,
+  // };
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      // style={style}
       className={`
         group p-3 w-full relative
         rounded-lg hover:bg-accent border border-border mb-auto 

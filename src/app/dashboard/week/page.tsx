@@ -114,39 +114,98 @@ export default function WeekPage() {
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
+
+    // Default state - reset drop indicator when not over anything
     if (!over) {
-      setDropLine({ targetId: null, position: null });
+      resetDropLine();
       return;
     }
 
-    const activeTask = active.data.current?.task as Task;
-    const overTask = over.data.current?.task as Task;
-    const overContainer = over.data.current?.container;
-    const isOverContainer = over.data.current?.type === "day-column";
+    const activeData = active.data.current;
+    const overData = over.data.current;
 
-    // Если навели над пустым днем
-    if (isOverContainer && overContainer) {
-      const targetDay = overContainer as string;
-      if (targetDay !== String(activeTask.day)) {
+    // Safety check for data availability
+    if (!activeData || !overData) {
+      resetDropLine();
+      return;
+    }
+
+    const activeTask = activeData.task as Task;
+
+    // Ensure we have a valid active task
+    if (!activeTask) {
+      resetDropLine();
+      return;
+    }
+
+    const overTask = overData.task as Task;
+    const overContainer = overData.container;
+    const overType = overData.type;
+
+    // Handling hover over day column (empty day or day container)
+    if (overType === "day-column" && overContainer) {
+      handleDragOverContainer(activeTask, overContainer);
+      return;
+    }
+
+    // Handling hover over another task
+    if (overTask && activeTask.id !== overTask.id) {
+      handleDragOverTask(active, over, overTask);
+      return;
+    }
+
+    // Default reset if none of the above conditions are met
+    resetDropLine();
+  };
+
+  const resetDropLine = () => {
+    setDropLine({ targetId: null, position: null });
+  };
+
+  const handleDragOverContainer = (activeTask: Task, overContainer: string) => {
+    // Only show drop indicator if hovering over a different day
+    const targetDay = overContainer;
+    const activeDay = String(activeTask.day);
+
+    if (targetDay !== activeDay) {
+      // For archived tasks, always show the indicator
+      if (activeTask.isArchived || targetDay !== activeDay) {
         setDropLine({
           targetId: targetDay,
-          position: "after",
+          position: "after", // Default to "after" position for empty days
         });
+        return;
       }
-      return;
     }
 
-    // Если навели над другой задачей
-    if (overTask && activeTask.id !== overTask.id) {
-      const position = calculateRelativePosition(active, over);
+    resetDropLine();
+  };
+
+  const handleDragOverTask = (active: Active, over: Over, overTask: Task) => {
+    const position = calculateRelativePosition(active, over);
+
+    // Check if we're trying to place a task between two tasks in the archive
+    const activeTask = active.data.current?.task as Task;
+    const isActiveArchived = activeTask?.isArchived;
+    const isOverArchived = overTask.isArchived;
+
+    // Don't show indicators for invalid operations
+    if (
+      (isActiveArchived && !isOverArchived) ||
+      (!isActiveArchived && isOverArchived)
+    ) {
+      // Allow drag between archive and non-archive
       setDropLine({
         targetId: overTask.id,
         position,
       });
-      return;
+    } else {
+      // Normal case - show drop indicator between tasks
+      setDropLine({
+        targetId: overTask.id,
+        position,
+      });
     }
-
-    setDropLine({ targetId: null, position: null });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
