@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { QueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createGoal,
   deleteGoal,
@@ -9,52 +8,51 @@ import {
 } from "@/entities/goals/api/goal.api";
 import { Goal } from "@/entities/goals/model/goal.dto";
 
-const queryClient = new QueryClient();
-
 export function useGoals() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
+  const queryClient = useQueryClient();
 
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  // Загрузка целей
+  const {
+    data: goals = [],
+    isLoading,
+    error,
+  } = useQuery<Goal[]>({
+    queryKey: ["goals", userId],
+    queryFn: () => (userId ? fetchGoals(userId) : Promise.resolve([])),
+    enabled: !!userId,
+  });
 
-  useEffect(() => {
-    if (userId) {
-      fetchGoals(userId)
-        .then((data) => {
-          setGoals(data);
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          setError(err);
-          setIsLoading(false);
-        });
-    }
-  }, [userId]);
-
+  // Создание цели
   const createMutation = useMutation({
     mutationFn: (title: string) => createGoal(userId!, title),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["goals", userId] });
-      fetchGoals(userId!).then(setGoals);
+    onSuccess: (newGoal) => {
+      queryClient.setQueryData<Goal[]>(["goals", userId], (old = []) => [
+        ...old,
+        newGoal,
+      ]);
     },
   });
 
+  // Обновление цели
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; goal: Partial<Goal> }) =>
       updateGoal(data.id, data.goal),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["goals", userId] });
-      fetchGoals(userId!).then(setGoals);
+    onSuccess: (updatedGoal) => {
+      queryClient.setQueryData<Goal[]>(["goals", userId], (old = []) =>
+        old.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal))
+      );
     },
   });
 
+  // Удаление цели
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteGoal(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["goals", userId] });
-      fetchGoals(userId!).then(setGoals);
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData<Goal[]>(["goals", userId], (old = []) =>
+        old.filter((goal) => goal.id !== deletedId)
+      );
     },
   });
 
