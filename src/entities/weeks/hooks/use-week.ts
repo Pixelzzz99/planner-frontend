@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { weekApi } from "../api/week.api";
-import { taskApi } from "@/entities/task/api/task.api";
-import { CreateTaskDTO } from "@/entities/task/models/task.model";
-import { archivedTasksKeys } from "@/entities/task/hooks/useArchivedTasks";
+
 import { yearPlanKeys } from "@/entities/year-plan/hooks/useYearPlan";
 
 export const weekKeys = {
@@ -40,69 +38,6 @@ export const useDeleteWeek = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: weekKeys.all });
       queryClient.invalidateQueries({ queryKey: yearPlanKeys.all });
-    },
-  });
-};
-
-// Добавляем мутации для тасков
-export const useCreateTask = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ weekId, data }: { weekId: string; data: CreateTaskDTO }) =>
-      taskApi.createTask(weekId, data),
-    onSuccess: (_, { weekId }) => {
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-    },
-  });
-};
-
-export const useUpdateTask = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      taskId,
-      data,
-    }: {
-      taskId: string;
-      data: Partial<CreateTaskDTO>;
-      weekId: string;
-    }) => taskApi.updateTask(taskId, data),
-    onSuccess: (_, { weekId }) => {
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-    },
-  });
-};
-
-export const useDeleteTask = () => {
-  return useMutation({
-    mutationFn: ({ taskId }: { taskId: string; weekId?: string }) =>
-      taskApi.deleteTask(taskId),
-  });
-};
-
-// Заменяем useArchiveTask и useMoveTask на единый хук
-export const useMoveTask = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      taskId,
-      data,
-    }: {
-      taskId: string;
-      data: {
-        weekPlanId?: string;
-        day?: number;
-        date?: string;
-        toArchive?: boolean;
-        archiveReason?: string;
-      };
-    }) => taskApi.moveTask(taskId, data),
-    onSuccess: () => {
-      // Инвалидируем все потенциально затронутые запросы
-      queryClient.invalidateQueries({ queryKey: weekKeys.all });
-      queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
     },
   });
 };

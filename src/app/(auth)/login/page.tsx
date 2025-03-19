@@ -11,8 +11,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-muted">
-      <h1 className="text-4xl font-bold mb-8 text-foreground">Calendrium</h1>
+    <div>
       <LoginForm />
     </div>
   );
