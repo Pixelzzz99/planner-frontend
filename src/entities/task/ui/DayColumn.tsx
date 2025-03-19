@@ -41,9 +41,11 @@ export function DayColumn({
 
   return (
     <div
-      className={`flex-shrink-0 w-[250px] rounded-xl shadow-sm border border-border min-h-[200px] ${
+      className={`flex-shrink-0 w-[250px] rounded-xl shadow-sm border border-border ${
         isOver ? "bg-accent/50" : day.color
       }`}
+      ref={setNodeRef}
+      data-container={day.id}
     >
       <div className="p-4 border-b border-border/50 w-full backdrop-blur-sm">
         <h2 className="font-semibold text-foreground/90 text-center">
@@ -51,11 +53,7 @@ export function DayColumn({
         </h2>
       </div>
       {/* Делаем всю область дня droppable */}
-      <div
-        ref={setNodeRef}
-        className="p-3 w-full min-h-[150px] flex flex-col"
-        data-container={day.id}
-      >
+      <div className="p-3 w-full min-h-[150px] flex flex-col">
         <div className="space-y-1 w-full flex-1">
           <SortableContext
             id={String(day.id)}

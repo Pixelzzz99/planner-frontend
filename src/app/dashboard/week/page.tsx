@@ -10,10 +10,8 @@ import {
   useSensors,
   DragEndEvent,
   DragStartEvent,
-  closestCenter,
-  Active,
-  Over,
   DragOverEvent,
+  pointerWithin,
 } from "@dnd-kit/core";
 
 //constants
@@ -103,33 +101,34 @@ export default function WeekPage() {
     }
   };
 
-  function calculateRelativePosition(
-    active: Active,
-    over: Over
-  ): "before" | "after" {
-    const isSameContainer =
-      active.data.current?.container === over.data.current?.container;
-
-    if (isSameContainer) {
-      // Старый сценарий для задач в рамках одного дня
-      const activeTask = active.data.current?.task as Task;
-      const overTask = over.data.current?.task as Task;
-      return activeTask.position >= overTask.position ? "before" : "after";
-    } else {
-      // Реализация переноса задач между днями
-      const activeContainer = active.data.current?.container;
-      const targetContainer = over.data.current?.container;
-
-      // Сравниваем контейнеры (предполагая, что они сортированы хронологически)
-      if (activeContainer < targetContainer) {
-        // Перемещение вперед (в будущую дату) - ставим в начало списка
-        return "before";
-      } else {
-        // Перемещение назад (в прошлую дату) - ставим в конец списка
-        return "after";
-      }
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    if (!over) {
+      setDropLine({ targetId: null, position: null });
+      return;
     }
-  }
+
+    const overData = over.data.current;
+    const overType = overData?.type;
+    const overContainer = overData?.container;
+
+    // Если перетаскивание происходит по колонке дня
+    if (overType === "day-column") {
+      const targetDay = parseInt(overContainer as string);
+      // Если активная задача существует и целевой день совпадает с днем задачи,
+      // то индикатор не отображается.
+      if (activeTask && targetDay === activeTask.day) {
+        setDropLine({ targetId: null, position: null });
+      } else {
+        setDropLine({ targetId: overContainer ?? null, position: "after" });
+      }
+    } else if (overType === "archive") {
+      // Для области архива индикатор не нужен
+      setDropLine({ targetId: null, position: null });
+    } else {
+      setDropLine({ targetId: null, position: null });
+    }
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -239,9 +238,9 @@ export default function WeekPage() {
           <div className="lg:col-span-9">
             <DndContext
               sensors={sensors}
-              collisionDetection={closestCenter}
+              collisionDetection={pointerWithin}
               onDragStart={handleDragStart}
-              // onDragOver={handleDragOver}
+              onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
               <div className="grid grid-cols-1 gap-6">
