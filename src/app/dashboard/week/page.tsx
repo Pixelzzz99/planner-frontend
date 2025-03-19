@@ -103,110 +103,33 @@ export default function WeekPage() {
     }
   };
 
-  const calculateRelativePosition = (
+  function calculateRelativePosition(
     active: Active,
     over: Over
-  ): "before" | "after" => {
-    const activeTask = active.data.current?.task as Task;
-    const overTask = over.data.current?.task as Task;
-    return activeTask.position > overTask.position ? "before" : "after";
-  };
+  ): "before" | "after" {
+    const isSameContainer =
+      active.data.current?.container === over.data.current?.container;
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
+    if (isSameContainer) {
+      // Старый сценарий для задач в рамках одного дня
+      const activeTask = active.data.current?.task as Task;
+      const overTask = over.data.current?.task as Task;
+      return activeTask.position >= overTask.position ? "before" : "after";
+    } else {
+      // Реализация переноса задач между днями
+      const activeContainer = active.data.current?.container;
+      const targetContainer = over.data.current?.container;
 
-    // Default state - reset drop indicator when not over anything
-    if (!over) {
-      resetDropLine();
-      return;
-    }
-
-    const activeData = active.data.current;
-    const overData = over.data.current;
-
-    // Safety check for data availability
-    if (!activeData || !overData) {
-      resetDropLine();
-      return;
-    }
-
-    const activeTask = activeData.task as Task;
-
-    // Ensure we have a valid active task
-    if (!activeTask) {
-      resetDropLine();
-      return;
-    }
-
-    const overTask = overData.task as Task;
-    const overContainer = overData.container;
-    const overType = overData.type;
-
-    // Handling hover over day column (empty day or day container)
-    if (overType === "day-column" && overContainer) {
-      handleDragOverContainer(activeTask, overContainer);
-      return;
-    }
-
-    // Handling hover over another task
-    if (overTask && activeTask.id !== overTask.id) {
-      handleDragOverTask(active, over, overTask);
-      return;
-    }
-
-    // Default reset if none of the above conditions are met
-    resetDropLine();
-  };
-
-  const resetDropLine = () => {
-    setDropLine({ targetId: null, position: null });
-  };
-
-  const handleDragOverContainer = (activeTask: Task, overContainer: string) => {
-    // Only show drop indicator if hovering over a different day
-    const targetDay = overContainer;
-    const activeDay = String(activeTask.day);
-
-    if (targetDay !== activeDay) {
-      // For archived tasks, always show the indicator
-      if (activeTask.isArchived || targetDay !== activeDay) {
-        setDropLine({
-          targetId: targetDay,
-          position: "after", // Default to "after" position for empty days
-        });
-        return;
+      // Сравниваем контейнеры (предполагая, что они сортированы хронологически)
+      if (activeContainer < targetContainer) {
+        // Перемещение вперед (в будущую дату) - ставим в начало списка
+        return "before";
+      } else {
+        // Перемещение назад (в прошлую дату) - ставим в конец списка
+        return "after";
       }
     }
-
-    resetDropLine();
-  };
-
-  const handleDragOverTask = (active: Active, over: Over, overTask: Task) => {
-    const position = calculateRelativePosition(active, over);
-
-    // Check if we're trying to place a task between two tasks in the archive
-    const activeTask = active.data.current?.task as Task;
-    const isActiveArchived = activeTask?.isArchived;
-    const isOverArchived = overTask.isArchived;
-
-    // Don't show indicators for invalid operations
-    if (
-      (isActiveArchived && !isOverArchived) ||
-      (!isActiveArchived && isOverArchived)
-    ) {
-      // Allow drag between archive and non-archive
-      setDropLine({
-        targetId: overTask.id,
-        position,
-      });
-    } else {
-      // Normal case - show drop indicator between tasks
-      setDropLine({
-        targetId: overTask.id,
-        position,
-      });
-    }
-  };
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -227,18 +150,14 @@ export default function WeekPage() {
     const overTask = overData?.task as Task;
 
     if (overType === "archive") {
-      commitTaskPosition(
-        activeTask.id,
-        activeTask.day,
-        undefined,
-        undefined,
-        true
-      );
+      console.log("from day to archive");
+      commitTaskPosition(activeTask.id, activeTask.day, undefined, true);
       resetIndicators();
       return;
     }
 
     if (activeTask.isArchived && overType === "day-column") {
+      console.log("from archive to day");
       handleMoveFromArchiveToDay(activeTask, overContainer);
       resetIndicators();
       return;
@@ -251,7 +170,7 @@ export default function WeekPage() {
     }
 
     if (overTask) {
-      handleTaskToTaskMove(activeTask, overTask, active, over);
+      handleTaskToTaskMove(activeTask, overTask);
       resetIndicators();
       return;
     }
@@ -278,44 +197,23 @@ export default function WeekPage() {
     if (!isNaN(targetDay) && targetDay === activeTask.day) return;
     if (overTask) {
       // Если в дне есть задачи, добавляем после последней
-      commitTaskPosition(activeTask.id, targetDay, overTask.id, "after");
+      commitTaskPosition(activeTask.id, targetDay, overTask.id);
     } else {
       // Если день пустой
       commitTaskPosition(activeTask.id, targetDay);
     }
   };
 
-  const handleTaskToTaskMove = (
-    activeTask: Task,
-    overTask: Task,
-    active: Active,
-    over: Over
-  ) => {
+  const handleTaskToTaskMove = (activeTask: Task, overTask: Task) => {
     if (overTask.isArchived) {
-      commitTaskPosition(
-        activeTask.id,
-        activeTask.day,
-        undefined,
-        undefined,
-        true
-      );
+      commitTaskPosition(activeTask.id, activeTask.day, undefined, true);
     } else if (activeTask.day !== overTask.day) {
-      commitTaskPosition(
-        activeTask.id,
-        overTask.day,
-        overTask.id,
-        calculateRelativePosition(active, over)
-      );
+      commitTaskPosition(activeTask.id, overTask.day, overTask.id);
     } else if (
       activeTask.position !== overTask.position &&
       activeTask.day === overTask.day
     ) {
-      commitTaskPosition(
-        activeTask.id,
-        activeTask.day,
-        overTask.id,
-        calculateRelativePosition(active, over)
-      );
+      commitTaskPosition(activeTask.id, activeTask.day, overTask.id);
     }
   };
 
@@ -343,7 +241,7 @@ export default function WeekPage() {
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
+              // onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
               <div className="grid grid-cols-1 gap-6">

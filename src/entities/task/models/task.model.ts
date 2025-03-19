@@ -10,7 +10,7 @@ export interface MoveTaskDto {
   isArchive?: boolean;
   archiveReason?: string;
   targetTaskId?: string;
-  position?: "before" | "after";
+  position?: number;
 }
 
 export type CreateTaskDTO = Omit<Task, "id" | "createdAt" | "category">;

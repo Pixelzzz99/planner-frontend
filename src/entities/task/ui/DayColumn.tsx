@@ -27,18 +27,11 @@ export function DayColumn({
   handleDeleteTask,
   dropLine,
 }: DayColumnProps) {
-  // Находим последнюю задачу в дне
-  const lastTask = useMemo(() => {
-    if (day.tasks.length === 0) return null;
-    return [...day.tasks].sort((a, b) => b.position - a.position)[0];
-  }, [day.tasks]);
-
   const { setNodeRef, isOver } = useDroppable({
     id: String(day.id),
     data: {
       container: String(day.id),
       type: "day-column",
-      task: lastTask, // Передаем последнюю задачу, если она есть
     },
   });
 
@@ -63,7 +56,7 @@ export function DayColumn({
         className="p-3 w-full min-h-[150px] flex flex-col"
         data-container={day.id}
       >
-        <div className="space-y-3 w-full flex-1">
+        <div className="space-y-1 w-full flex-1">
           <SortableContext
             id={String(day.id)}
             items={day.tasks}
