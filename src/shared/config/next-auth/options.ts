@@ -95,18 +95,6 @@ export const authOptions: AuthOptions = {
       }
     },
   },
-  events: {
-    async signOut({}: { token: JWT }) {
-      try {
-        await fetch("/api/auth/signout", {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch (error) {
-        console.error("Error during signout:", error);
-      }
-    },
-  },
   session: {
     strategy: "jwt" as SessionStrategy,
     maxAge: 24 * 60 * 60, // 24 hours
