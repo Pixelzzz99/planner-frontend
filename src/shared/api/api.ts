@@ -33,7 +33,9 @@ api.interceptors.response.use(
         await signOut({ redirect: true, callbackUrl: "/auth/login" });
       } catch (signOutError) {
         console.error("Error during sign out:", signOutError);
-        window.location.href = "/auth/login";
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth/login";
+        }
       }
     }
     return Promise.reject(error);

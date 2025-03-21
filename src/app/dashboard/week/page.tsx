@@ -23,7 +23,7 @@ import { WeekPageHeader } from "@/entities/weeks/ui/WeekPageHeader";
 import { LeftSidePage } from "@/widgets/week/LeftSidePage";
 
 //categories ui
-import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories-widget";
+import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories";
 
 //tasks ui
 import { TaskSheet } from "@/entities/task/ui/TaskSheet";
@@ -41,7 +41,7 @@ export default function WeekPage() {
   const weekId = searchParams?.get("weekId") ?? "";
   const userId = useUserId();
 
-  const { categories } = useCategoriesWidget(userId);
+  const { categories } = useCategoriesWidget();
 
   const {
     weekPlan,
