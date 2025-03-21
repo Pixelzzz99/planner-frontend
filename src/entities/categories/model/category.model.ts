@@ -1,3 +1,10 @@
+export interface UpdateCategoryDTO {
+  id: string;
+  changes: {
+    name?: string;
+    plannedTime?: number;
+  };
+}
 export interface Category {
   id: string;
   userId: string;

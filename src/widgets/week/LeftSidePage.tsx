@@ -1,10 +1,8 @@
-import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories-widget";
-import { CategoryFormModal } from "@/entities/categories/ui/CategoryFormModal";
+import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories";
 import { TaskCategories } from "@/entities/categories/ui/TaskCategories";
 import { WeekFocus } from "@/entities/weeks/ui/WeekFocus";
 
 export const LeftSidePage = ({
-  userId,
   weekId,
 }: {
   userId: string;
@@ -12,34 +10,21 @@ export const LeftSidePage = ({
 }) => {
   const {
     categories,
-    categoryForm,
-    setCategoryForm,
-    handleSubmit: handleSubmitCategory,
-    isModalOpen,
-    setIsModalOpen,
-    handleOpenAddModal: handleOpenAddCategory,
-    handleOpenEditModal: handleOpenEditCategory,
-    handleDelete: handleDeleteCategory,
+    onAddCategory,
+    onEditCategory,
+    onDeleteCategory,
     isLoading: isCategoriesLoading,
-  } = useCategoriesWidget(userId);
+  } = useCategoriesWidget();
   return (
     <div className="lg:col-span-3 space-y-6">
       <WeekFocus weekPlanId={weekId} />
 
       <TaskCategories
         categories={categories}
-        onAddCategory={handleOpenAddCategory}
-        onEditCategory={handleOpenEditCategory}
-        onDeleteCategory={handleDeleteCategory}
+        onAddCategory={onAddCategory}
+        onEditCategory={onEditCategory}
+        onDeleteCategory={onDeleteCategory}
         isLoading={isCategoriesLoading}
-      />
-
-      <CategoryFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        categoryForm={categoryForm}
-        setCategoryForm={setCategoryForm}
-        onSubmit={handleSubmitCategory}
       />
     </div>
   );

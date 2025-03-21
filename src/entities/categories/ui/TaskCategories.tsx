@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { EditableText } from "@/shared/ui/EditableText";
 import { Trash2, Plus, Loader2 } from "lucide-react";
 import { Category } from "../model/category.model";
+import { getCategoryColor } from "@/shared/lib/utils/color";
 import {
   Table,
   TableBody,
@@ -14,7 +15,10 @@ import {
 interface TaskCategoriesProps {
   categories: Category[];
   onAddCategory: () => void;
-  onEditCategory: (category: Category) => void;
+  onEditCategory: (
+    id: string,
+    changes: { name?: string; plannedTime?: number }
+  ) => void;
   onDeleteCategory: (id: string) => void;
   isLoading?: boolean;
 }
@@ -34,7 +38,7 @@ export function TaskCategories({
 
       <Button
         variant="outline"
-        onClick={onAddCategory}
+        onClick={() => onAddCategory()}
         className="flex items-center gap-2 w-full mb-4 hover:bg-accent"
         disabled={isLoading}
       >
@@ -54,6 +58,7 @@ export function TaskCategories({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]"></TableHead>
               <TableHead>Название</TableHead>
               <TableHead>Время (план/факт)</TableHead>
               <TableHead className="w-[80px] text-center">Действия</TableHead>
@@ -63,29 +68,34 @@ export function TaskCategories({
             {categories.map((category) => (
               <TableRow key={category.id} className="group">
                 <TableCell>
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: getCategoryColor(category.id) }}
+                  />
+                </TableCell>
+                <TableCell>
                   <EditableText
                     text={category.name}
-                    className="text-foreground text-md font-medium hover:bg-accent/50 px-2 py-1 rounded-md"
+                    className="text-foreground text-md font-medium hover:bg-accent/50 px-2 py-1 rounded-md w-full"
                     onSave={(newName) =>
-                      onEditCategory({ ...category, name: newName })
+                      onEditCategory(category.id, { name: newName })
                     }
                   />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2 text-sm">
                     <EditableText
-                      text={`${category.plannedTime}`}
+                      text={`${category.plannedTime || 0}`}
                       className="hover:bg-accent/50 px-2 py-1 rounded-md w-12 text-center"
                       onSave={(newTime) =>
-                        onEditCategory({
-                          ...category,
+                        onEditCategory(category.id, {
                           plannedTime: Number(newTime),
                         })
                       }
                     />
                     <span className="text-muted-foreground">/</span>
                     <span className="text-muted-foreground w-12 text-center">
-                      {category.actualTime}
+                      {category.actualTime || 0}
                     </span>
                     <span className="text-muted-foreground">ч</span>
                   </div>
