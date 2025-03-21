@@ -6,8 +6,8 @@ export const categoryApi = {
     return response.data;
   },
 
-  getUserCategories: async (userId: string) => {
-    const response = await api.get(`/categories/${userId}`);
+  getUserCategories: async () => {
+    const response = await api.get(`/categories/`);
     return response.data;
   },
 
