@@ -2,6 +2,14 @@ import { Button } from "@/components/ui/button";
 import { EditableText } from "@/shared/ui/EditableText";
 import { Trash2, Plus, Loader2 } from "lucide-react";
 import { Category } from "../model/category.model";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface TaskCategoriesProps {
   categories: Category[];
@@ -38,36 +46,65 @@ export function TaskCategories({
         Добавить категорию
       </Button>
 
-      {categories.length === 0 && (
+      {categories.length === 0 ? (
         <div className="text-muted-foreground text-sm mt-3 text-center">
           Категории отсутствуют
         </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Название</TableHead>
+              <TableHead>Время (план/факт)</TableHead>
+              <TableHead className="w-[80px] text-center">Действия</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.map((category) => (
+              <TableRow key={category.id} className="group">
+                <TableCell>
+                  <EditableText
+                    text={category.name}
+                    className="text-foreground text-md font-medium hover:bg-accent/50 px-2 py-1 rounded-md"
+                    onSave={(newName) =>
+                      onEditCategory({ ...category, name: newName })
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2 text-sm">
+                    <EditableText
+                      text={`${category.plannedTime}`}
+                      className="hover:bg-accent/50 px-2 py-1 rounded-md w-12 text-center"
+                      onSave={(newTime) =>
+                        onEditCategory({
+                          ...category,
+                          plannedTime: Number(newTime),
+                        })
+                      }
+                    />
+                    <span className="text-muted-foreground">/</span>
+                    <span className="text-muted-foreground w-12 text-center">
+                      {category.actualTime}
+                    </span>
+                    <span className="text-muted-foreground">ч</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => onDeleteCategory(category.id)}
+                  >
+                    <Trash2 size={18} />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
-
-      <div className="mt-4 space-y-2">
-        {categories.map((category) => (
-          <div
-            key={category.id}
-            className="p-1 flex justify-between items-center bg-muted rounded-md border border-border hover:shadow-sm transition-all"
-          >
-            <EditableText
-              text={category.name}
-              className="text-foreground text-md font-medium hover:bg-accent/50 px-2 py-1 rounded-md"
-              onSave={(newName) =>
-                onEditCategory({ ...category, name: newName })
-              }
-            />
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-              onClick={() => onDeleteCategory(category.id)}
-            >
-              <Trash2 size={20} />
-            </Button>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

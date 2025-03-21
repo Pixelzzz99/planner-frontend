@@ -9,8 +9,7 @@ export const categoryKeys = {
 export const useCategories = (userId: string) => {
   return useQuery({
     queryKey: categoryKeys.list(userId),
-    queryFn: () => categoryApi.getUserCategories(userId),
-    enabled: !!userId,
+    queryFn: () => categoryApi.getUserCategories(),
   });
 };
 
