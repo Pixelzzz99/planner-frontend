@@ -37,7 +37,6 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log(process.env.NEXTAUTH_URL);
         if (!credentials?.email || !credentials.password) {
           return null;
         }
