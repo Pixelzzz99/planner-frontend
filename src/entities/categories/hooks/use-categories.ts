@@ -1,65 +1,90 @@
 import { useCallback, useState } from "react";
-import {
-  Category,
-  UpdateCategoryDTO,
-} from "@/entities/categories/model/category.model";
-import { categoriesApi } from "@/entities/categories/api/categories.api";
+import { Category, UpdateCategoryDTO } from "../model/category.model";
+import { categoriesApi } from "../api/categories.api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { categoryKeys } from "../model/keys";
+
+const updateCategoryCache = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  categoryId: string,
+  timeChange: number
+) => {
+  // Получаем текущие данные из кэша
+  const currentCategories =
+    queryClient.getQueryData<Category[]>(categoryKeys.lists()) || [];
+
+  // Создаем новый массив с обновленными данными
+  const updatedCategories = currentCategories.map((cat) =>
+    cat.id === categoryId
+      ? { ...cat, plannedTime: Math.max(0, cat.plannedTime + timeChange) }
+      : cat
+  );
+
+  // Обновляем данные в кэше
+  queryClient.setQueryData(categoryKeys.lists(), updatedCategories);
+
+  // Вызываем invalidateQueries для триггера ререндера
+  queryClient.invalidateQueries({
+    queryKey: categoryKeys.lists(),
+    // Не делаем рефетч, так как у нас уже есть актуальные данные
+    refetchType: "none",
+  });
+};
 
 export function useCategoriesWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
-  // Получение категорий
   const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["categories"],
+    queryKey: categoryKeys.lists(),
     queryFn: () => categoriesApi.getAll(),
+    // Добавляем staleTime чтобы контролировать когда данные станут устаревшими
+    staleTime: 30000, // 30 секунд
   });
 
-  // Создание категории
   const createMutation = useMutation({
     mutationFn: (category: Partial<Category>) => categoriesApi.create(category),
     onMutate: async (newCategory) => {
       setIsLoading(true);
-      // Отменяем исходящие запросы
-      await queryClient.cancelQueries({ queryKey: ["categories"] });
-      // Сохраняем предыдущее состояние
-      const previousCategories = queryClient.getQueryData<Category[]>([
-        "categories",
-      ]);
-      // Оптимистично обновляем UI
-      queryClient.setQueryData<Category[]>(["categories"], (old = []) => [
+      await queryClient.cancelQueries({ queryKey: categoryKeys.lists() });
+      const previousCategories = queryClient.getQueryData<Category[]>(
+        categoryKeys.lists()
+      );
+
+      queryClient.setQueryData<Category[]>(categoryKeys.lists(), (old = []) => [
         ...old,
         { id: "temp-id", ...newCategory } as Category,
       ]);
+
       return { previousCategories };
     },
     onSuccess: () => {
       toast.success("Категория создана");
     },
     onError: (err, _, context) => {
-      // Возвращаем предыдущие данные при ошибке
-      queryClient.setQueryData(["categories"], context?.previousCategories);
+      queryClient.setQueryData(
+        categoryKeys.lists(),
+        context?.previousCategories
+      );
       toast.error("Ошибка при создании категории");
     },
     onSettled: () => {
       setIsLoading(false);
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
     },
   });
 
-  // Обновление категории
   const updateMutation = useMutation({
     mutationFn: ({ id, changes }: UpdateCategoryDTO) =>
       categoriesApi.update(id, changes),
     onMutate: async ({ id, changes }) => {
-      await queryClient.cancelQueries({ queryKey: ["categories"] });
-      const previousCategories = queryClient.getQueryData<Category[]>([
-        "categories",
-      ]);
+      await queryClient.cancelQueries({ queryKey: categoryKeys.lists() });
+      const previousCategories = queryClient.getQueryData<Category[]>(
+        categoryKeys.lists()
+      );
 
-      queryClient.setQueryData<Category[]>(["categories"], (old = []) =>
+      queryClient.setQueryData<Category[]>(categoryKeys.lists(), (old = []) =>
         old.map((cat) => (cat.id === id ? { ...cat, ...changes } : cat))
       );
 
@@ -69,24 +94,26 @@ export function useCategoriesWidget() {
       toast.success("Категория обновлена");
     },
     onError: (err, _, context) => {
-      queryClient.setQueryData(["categories"], context?.previousCategories);
+      queryClient.setQueryData(
+        categoryKeys.lists(),
+        context?.previousCategories
+      );
       toast.error("Ошибка при обновлении категории");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
     },
   });
 
-  // Удаление категории
   const deleteMutation = useMutation({
     mutationFn: (id: string) => categoriesApi.delete(id),
     onMutate: async (deletedId) => {
-      await queryClient.cancelQueries({ queryKey: ["categories"] });
-      const previousCategories = queryClient.getQueryData<Category[]>([
-        "categories",
-      ]);
+      await queryClient.cancelQueries({ queryKey: categoryKeys.lists() });
+      const previousCategories = queryClient.getQueryData<Category[]>(
+        categoryKeys.lists()
+      );
 
-      queryClient.setQueryData<Category[]>(["categories"], (old = []) =>
+      queryClient.setQueryData<Category[]>(categoryKeys.lists(), (old = []) =>
         old.filter((cat) => cat.id !== deletedId)
       );
 
@@ -96,13 +123,33 @@ export function useCategoriesWidget() {
       toast.success("Категория удалена");
     },
     onError: (err, _, context) => {
-      queryClient.setQueryData(["categories"], context?.previousCategories);
+      queryClient.setQueryData(
+        categoryKeys.lists(),
+        context?.previousCategories
+      );
       toast.error("Ошибка при удалении категории");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
     },
   });
+
+  const updateCategoryTime = useCallback(
+    (categoryId: string, timeChange: number) => {
+      updateCategoryCache(queryClient, categoryId, timeChange);
+
+      // Опционально: можно добавить отложенную синхронизацию с сервером
+      updateMutation.mutate({
+        id: categoryId,
+        changes: {
+          plannedTime:
+            (categories.find((c) => c.id === categoryId)?.plannedTime || 0) +
+            timeChange,
+        },
+      });
+    },
+    [queryClient, categories, updateMutation]
+  );
 
   const handleAddCategory = useCallback(async () => {
     setIsLoading(true);
@@ -136,5 +183,6 @@ export function useCategoriesWidget() {
     onAddCategory: handleAddCategory,
     onEditCategory: handleEditCategory,
     onDeleteCategory: handleDeleteCategory,
+    updateCategoryTime,
   };
 }

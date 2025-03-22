@@ -149,14 +149,12 @@ export default function WeekPage() {
     const overTask = overData?.task as Task;
 
     if (overType === "archive") {
-      console.log("from day to archive");
       commitTaskPosition(activeTask.id, activeTask.day, undefined, true);
       resetIndicators();
       return;
     }
 
     if (activeTask.isArchived && overType === "day-column") {
-      console.log("from archive to day");
       handleMoveFromArchiveToDay(activeTask, overContainer);
       resetIndicators();
       return;
