@@ -9,10 +9,24 @@ import {
 import { CreateTaskDTO, UpdateTaskDTO, Task } from "../models/task.model";
 import { archivedTasksKeys } from "./useArchivedTasks";
 import { TaskState } from "../types/task-operations";
+import { useDebounce } from "@/shared/lib/hooks/useDebounce";
 
 interface UseTaskMutationsProps {
   weekId: string;
 }
+
+const POSITION_STEP = 1000;
+
+const recalculatePositions = (tasks: Task[]): Task[] => {
+  return tasks.map((task, index) => ({
+    ...task,
+    position: (index + 1) * POSITION_STEP,
+  }));
+};
+
+const findTaskById = (tasks: Task[], id: string): Task | undefined => {
+  return tasks.find((task) => task.id === id);
+};
 
 export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   const queryClient = useQueryClient();
@@ -47,27 +61,31 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   };
 
   const createNewTask = (data: CreateTaskDTO) => {
-    // Создаем временный id для оптимистичного обновления
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { categoryId, ...restData } = data;
     const tempId = `temp-${Date.now()}`;
     const newTask = {
-      ...restData,
-      id: tempId, // Добавляем временный id
+      ...data,
+      id: tempId,
       createdAt: new Date().toISOString(),
     } as Task;
 
     // Оптимистичное обновление UI
     updateWeekTasks((tasks) => [...tasks, newTask]);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, createdAt, ...taskData } = newTask;
+    const taskData = (() => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, createdAt, ...rest } = newTask;
+      if (!newTask.categoryId) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { categoryId, ...taskDataWithoutCategory } = rest;
+        return taskDataWithoutCategory;
+      }
+      return rest;
+    })();
 
-    // Отправляем запрос на сервер без временного id и categoryId
     createTask(
       {
         weekId,
-        data: taskData as CreateTaskDTO,
+        data: taskData,
       },
       {
         onSuccess: (response: Task) => {
@@ -92,96 +110,26 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     deleteTask({ taskId, weekId });
   };
 
-  const commitTaskPosition = async (
+  const syncWithServer = async (
     taskId: string,
     destinationDay: number,
     targetTaskId?: string,
     isArchive?: boolean
   ) => {
-    const { weekTasks, archivedTasks } = getTaskState();
-    // Находим задачу для перемещения:
-    const taskToMove = isArchive
-      ? weekTasks.find((t) => t.id === taskId)
-      : archivedTasks.find((t) => t.id === taskId) ||
-        weekTasks.find((t) => t.id === taskId);
-
-    if (!taskToMove) return;
-
-    if (isArchive) {
-      // Перемещение в архив: удаляем из weekTasks и добавляем в архив
-      updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
-      updateArchivedTasks((tasks) => [
-        ...tasks,
-        { ...taskToMove, isArchived: true },
-      ]);
-    } else if (taskToMove.isArchived) {
-      // Разархивация: удаляем из архива и добавляем в weekTasks с новым днём
-      updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== taskId));
-      updateWeekTasks((tasks) => {
-        const newTasks = tasks.filter((t) => t.id !== taskId);
-        newTasks.push({
-          ...taskToMove,
-          isArchived: false,
-          day: destinationDay,
-        });
-        // Пересчитываем позиции для задач в destinationDay
-        const destTasks = newTasks
-          .filter((t) => t.day === destinationDay)
-          .sort((a, b) => a.position - b.position)
-          .map((t, index) => ({ ...t, position: index * 1000 || 1 }));
-        const otherTasks = newTasks.filter((t) => t.day !== destinationDay);
-        return [...otherTasks, ...destTasks];
-      });
-    } else {
-      // Обычное перемещение между днями или внутри одного дня:
-      // 1. Убираем перемещаемую задачу из исходного списка
-      const newWeekTasks = weekTasks.filter((t) => t.id !== taskId);
-      // 2. Извлекаем задачи целевого дня и сортируем их по position
-      const destTasks = newWeekTasks.filter((t) => t.day === destinationDay);
-      const sortedDestTasks = destTasks.sort((a, b) => a.position - b.position);
-      // 3. Определяем индекс вставки:
-      // Если targetTaskId указан – ищем его индекс, иначе вставляем в конец
-      let insertIndex = sortedDestTasks.length;
-      if (targetTaskId) {
-        const targetIndex = sortedDestTasks.findIndex(
-          (t) => t.id === targetTaskId
-        );
-        if (targetIndex !== -1) {
-          insertIndex = targetIndex;
-        }
-      }
-      // 4. Вставляем перемещаемую задачу в массив задач целевого дня
-      const updatedDestTasks = [...sortedDestTasks];
-      updatedDestTasks.splice(insertIndex, 0, {
-        ...taskToMove,
-        day: destinationDay,
-      });
-      // 5. Пересчитываем позиции для всех задач целевого дня:
-      const recalculatedDestTasks = updatedDestTasks.map((t, index) => ({
-        ...t,
-        position: (index + 1) * 1000,
-      }));
-      console.log("recalculatedDestTasks", recalculatedDestTasks);
-      // 6. Обновляем глобальный список: объединяем задачи из destinationDay с задачами из других дней
-      const otherTasks = newWeekTasks.filter((t) => t.day !== destinationDay);
-      const finalTasks = [...otherTasks, ...recalculatedDestTasks].sort(
-        (a, b) => a.day - b.day || a.position - b.position
-      );
-      updateWeekTasks(() => finalTasks);
-    }
-
     try {
-      // После локального обновления на клиенте – синхронизируем с сервером
-      const newTask = getTaskState().weekTasks.find((t) => t.id === taskId);
-      const newPosition = newTask?.position;
+      const { weekTasks } = getTaskState(); // Получаем актуальное состояние
+      const newTask = weekTasks.find((t) => t.id === taskId);
+
+      if (!newTask) return;
+
       await moveTask({
         taskId,
         data: {
           weekPlanId: weekId,
           day: destinationDay,
-          isArchive: isArchive || false,
-          position: newPosition, // Новая позиция
-          targetTaskId: targetTaskId,
+          isArchive: Boolean(isArchive),
+          position: newTask.position,
+          targetTaskId,
           date: new Date().toISOString(),
           archiveReason: isArchive ? "Задача перемещена в архив" : undefined,
         },
@@ -193,6 +141,109 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
         queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
       }
     }
+  };
+
+  const debouncedSyncWithServer = useDebounce(syncWithServer, 1000);
+
+  const commitTaskPosition = async (
+    taskId: string,
+    destinationDay: number,
+    targetTaskId?: string,
+    isArchive?: boolean
+  ) => {
+    const { weekTasks, archivedTasks } = getTaskState();
+
+    // Упрощаем поиск задачи
+    const taskToMove =
+      findTaskById(weekTasks, taskId) || findTaskById(archivedTasks, taskId);
+
+    if (!taskToMove) return;
+
+    if (isArchive) {
+      handleArchiveTask(taskToMove, taskId);
+    } else if (taskToMove.isArchived) {
+      handleUnarchiveTask(taskToMove, taskId, destinationDay);
+    } else {
+      handleMoveTask(taskToMove, taskId, destinationDay, targetTaskId);
+    }
+
+    // Используем debounce для синхронизации с сервером
+    debouncedSyncWithServer(taskId, destinationDay, targetTaskId, isArchive);
+  };
+
+  const handleArchiveTask = (task: Task, taskId: string) => {
+    updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
+    updateArchivedTasks((tasks) => [...tasks, { ...task, isArchived: true }]);
+  };
+
+  const handleUnarchiveTask = (
+    task: Task,
+    taskId: string,
+    destinationDay: number
+  ) => {
+    updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== taskId));
+    updateWeekTasks((tasks) => {
+      const updatedTasks = [
+        ...tasks.filter((t) => t.id !== taskId),
+        { ...task, isArchived: false, day: destinationDay },
+      ];
+
+      return organizeTasksByDay(updatedTasks, destinationDay);
+    });
+  };
+
+  const handleMoveTask = (
+    task: Task,
+    taskId: string,
+    destinationDay: number,
+    targetTaskId?: string
+  ) => {
+    updateWeekTasks((tasks) => {
+      const tasksWithoutMoved = tasks.filter((t) => t.id !== taskId);
+      const destinationTasks = tasksWithoutMoved.filter(
+        (t) => t.day === destinationDay
+      );
+
+      const updatedDestinationTasks = insertTaskAtPosition(
+        destinationTasks,
+        { ...task, day: destinationDay },
+        targetTaskId
+      );
+
+      return organizeTasksByDay(
+        [
+          ...tasksWithoutMoved.filter((t) => t.day !== destinationDay),
+          ...updatedDestinationTasks,
+        ],
+        destinationDay
+      );
+    });
+  };
+
+  const insertTaskAtPosition = (
+    tasks: Task[],
+    taskToInsert: Task,
+    targetTaskId?: string
+  ): Task[] => {
+    const sortedTasks = [...tasks].sort((a, b) => a.position - b.position);
+    const insertIndex = targetTaskId
+      ? Math.max(
+          0,
+          sortedTasks.findIndex((t) => t.id === targetTaskId)
+        )
+      : sortedTasks.length;
+
+    sortedTasks.splice(insertIndex, 0, taskToInsert);
+    return recalculatePositions(sortedTasks);
+  };
+
+  const organizeTasksByDay = (tasks: Task[], targetDay: number): Task[] => {
+    const dayTasks = tasks.filter((t) => t.day === targetDay);
+    const otherTasks = tasks.filter((t) => t.day !== targetDay);
+
+    return [...otherTasks, ...recalculatePositions(dayTasks)].sort(
+      (a, b) => a.day - b.day || a.position - b.position
+    );
   };
 
   return {

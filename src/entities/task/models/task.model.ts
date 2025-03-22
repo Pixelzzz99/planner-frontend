@@ -24,7 +24,7 @@ export interface Task {
   priority: "HIGH" | "MEDIUM" | "LOW";
   duration: number;
   status: TaskStatus;
-  categoryId: string;
+  categoryId?: string;
   day: number;
   date: string;
   category: {
