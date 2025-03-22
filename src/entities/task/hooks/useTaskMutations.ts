@@ -10,6 +10,7 @@ import { CreateTaskDTO, UpdateTaskDTO, Task } from "../models/task.model";
 import { archivedTasksKeys } from "./useArchivedTasks";
 import { TaskState } from "../types/task-operations";
 import { useDebounce } from "@/shared/lib/hooks/useDebounce";
+import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories";
 
 interface UseTaskMutationsProps {
   weekId: string;
@@ -35,6 +36,7 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   const { mutate: updateTask } = useUpdateTask();
   const { mutate: deleteTask } = useDeleteTask();
   const { mutate: moveTask } = useMoveTask();
+  const { updateCategoryTime } = useCategoriesWidget();
 
   const getTaskState = (): TaskState => ({
     weekTasks:
@@ -92,19 +94,38 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
           updateWeekTasks((tasks) =>
             tasks.map((t) => (t.id === tempId ? { ...t, id: response.id } : t))
           );
+          // Обновляем время категории при создании задачи
+          if (data.categoryId && data.duration) {
+            updateCategoryTime(data.categoryId, data.duration);
+          }
         },
       }
     );
   };
 
   const updateExistingTask = (taskId: string, data: UpdateTaskDTO) => {
+    const oldTask = getTaskState().weekTasks.find((t) => t.id === taskId);
+
     updateWeekTasks((tasks) =>
       tasks.map((task) => (task.id === taskId ? { ...task, ...data } : task))
     );
+
     updateTask({ taskId, weekId, data });
+
+    // Обновляем время категории при изменении задачи
+    if (oldTask?.categoryId && data.duration !== undefined) {
+      const timeChange = data.duration - (oldTask.duration || 0);
+      updateCategoryTime(oldTask.categoryId, timeChange);
+    }
   };
 
   const deleteExistingTask = (taskId: string) => {
+    const taskToDelete = getTaskState().weekTasks.find((t) => t.id === taskId);
+
+    if (taskToDelete?.categoryId && taskToDelete.duration) {
+      updateCategoryTime(taskToDelete.categoryId, -taskToDelete.duration);
+    }
+
     updateWeekTasks((tasks) => tasks.filter((task) => task.id !== taskId));
     updateArchivedTasks((tasks) => tasks.filter((task) => task.id !== taskId));
     deleteTask({ taskId, weekId });
