@@ -3,6 +3,7 @@ export interface UpdateCategoryDTO {
   changes: {
     name?: string;
     plannedTime?: number;
+    actualTime?: number;
   };
 }
 export interface Category {
