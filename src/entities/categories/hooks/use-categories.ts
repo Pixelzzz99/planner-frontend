@@ -8,26 +8,21 @@ import { categoryKeys } from "../model/keys";
 const updateCategoryCache = (
   queryClient: ReturnType<typeof useQueryClient>,
   categoryId: string,
-  timeChange: number
+  timeChange: number,
+  field: "plannedTime" | "actualTime"
 ) => {
-  // Получаем текущие данные из кэша
   const currentCategories =
     queryClient.getQueryData<Category[]>(categoryKeys.lists()) || [];
 
-  // Создаем новый массив с обновленными данными
   const updatedCategories = currentCategories.map((cat) =>
     cat.id === categoryId
-      ? { ...cat, plannedTime: Math.max(0, cat.plannedTime + timeChange) }
+      ? { ...cat, [field]: Math.max(0, cat[field] + timeChange) }
       : cat
   );
 
-  // Обновляем данные в кэше
   queryClient.setQueryData(categoryKeys.lists(), updatedCategories);
-
-  // Вызываем invalidateQueries для триггера ререндера
   queryClient.invalidateQueries({
     queryKey: categoryKeys.lists(),
-    // Не делаем рефетч, так как у нас уже есть актуальные данные
     refetchType: "none",
   });
 };
@@ -39,7 +34,6 @@ export function useCategoriesWidget() {
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: categoryKeys.lists(),
     queryFn: () => categoriesApi.getAll(),
-    // Добавляем staleTime чтобы контролировать когда данные станут устаревшими
     staleTime: 30000, // 30 секунд
   });
 
@@ -136,14 +130,29 @@ export function useCategoriesWidget() {
 
   const updateCategoryTime = useCallback(
     (categoryId: string, timeChange: number) => {
-      updateCategoryCache(queryClient, categoryId, timeChange);
+      updateCategoryCache(queryClient, categoryId, timeChange, "plannedTime");
 
-      // Опционально: можно добавить отложенную синхронизацию с сервером
       updateMutation.mutate({
         id: categoryId,
         changes: {
           plannedTime:
             (categories.find((c) => c.id === categoryId)?.plannedTime || 0) +
+            timeChange,
+        },
+      });
+    },
+    [queryClient, categories, updateMutation]
+  );
+
+  const updateCategoryActualTime = useCallback(
+    (categoryId: string, timeChange: number) => {
+      updateCategoryCache(queryClient, categoryId, timeChange, "actualTime");
+
+      updateMutation.mutate({
+        id: categoryId,
+        changes: {
+          actualTime:
+            (categories.find((c) => c.id === categoryId)?.actualTime || 0) +
             timeChange,
         },
       });
@@ -184,5 +193,6 @@ export function useCategoriesWidget() {
     onEditCategory: handleEditCategory,
     onDeleteCategory: handleDeleteCategory,
     updateCategoryTime,
+    updateCategoryActualTime,
   };
 }
