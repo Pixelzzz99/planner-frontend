@@ -31,6 +31,7 @@ const findTaskById = (tasks: Task[], id: string): Task | undefined => {
 
 export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   const queryClient = useQueryClient();
+  const { updateCategoryActualTime } = useCategoriesWidget();
 
   const { mutate: createTask } = useCreateTask();
   const { mutate: updateTask } = useUpdateTask();
@@ -94,9 +95,9 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
           updateWeekTasks((tasks) =>
             tasks.map((t) => (t.id === tempId ? { ...t, id: response.id } : t))
           );
-          // Обновляем время категории при создании задачи
+          // Обновляем actualTime категории при создании задачи
           if (data.categoryId && data.duration) {
-            updateCategoryTime(data.categoryId, data.duration);
+            updateCategoryActualTime(data.categoryId, data.duration);
           }
         },
       }
@@ -112,10 +113,10 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
 
     updateTask({ taskId, weekId, data });
 
-    // Обновляем время категории при изменении задачи
+    // Обновляем actualTime категории при изменении задачи
     if (oldTask?.categoryId && data.duration !== undefined) {
       const timeChange = data.duration - (oldTask.duration || 0);
-      updateCategoryTime(oldTask.categoryId, timeChange);
+      updateCategoryActualTime(oldTask.categoryId, timeChange);
     }
   };
 
@@ -182,19 +183,41 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
 
     if (isArchive) {
       handleArchiveTask(taskToMove, taskId);
+      // Убираем вызов debouncedSyncWithServer для архивации
+      return;
     } else if (taskToMove.isArchived) {
       handleUnarchiveTask(taskToMove, taskId, destinationDay);
     } else {
       handleMoveTask(taskToMove, taskId, destinationDay, targetTaskId);
     }
 
-    // Используем debounce для синхронизации с сервером
+    // Используем debounce только для обычного перемещения задач
     debouncedSyncWithServer(taskId, destinationDay, targetTaskId, isArchive);
   };
 
   const handleArchiveTask = (task: Task, taskId: string) => {
+    // При архивации уменьшаем actualTime
+    if (task.categoryId && task.duration) {
+      updateCategoryActualTime(task.categoryId, -task.duration);
+    }
+
+    // Оптимистичное обновление UI
     updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
     updateArchivedTasks((tasks) => [...tasks, { ...task, isArchived: true }]);
+
+    // Отправляем запрос на сервер без debounce
+    moveTask({
+      taskId,
+      data: {
+        weekPlanId: weekId,
+        day: task.day,
+        isArchive: true,
+        position: task.position,
+        date: new Date().toISOString(),
+        archiveReason: "Задача перемещена в архив",
+      },
+      weekId,
+    });
   };
 
   const handleUnarchiveTask = (
@@ -202,6 +225,11 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     taskId: string,
     destinationDay: number
   ) => {
+    // При разархивации увеличиваем actualTime
+    if (task.categoryId && task.duration) {
+      updateCategoryActualTime(task.categoryId, task.duration);
+    }
+
     updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== taskId));
     updateWeekTasks((tasks) => {
       const updatedTasks = [

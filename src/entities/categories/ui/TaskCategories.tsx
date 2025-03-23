@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useMemo } from "react";
 
 interface TaskCategoriesProps {
   categories: Category[];
@@ -30,6 +31,12 @@ export function TaskCategories({
   onDeleteCategory,
   isLoading,
 }: TaskCategoriesProps) {
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort(
+      (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)
+    );
+  }, [categories]);
+
   return (
     <div className="border border-border p-4 rounded-md shadow-sm bg-card">
       <h2 className="font-semibold mb-4 text-xl text-foreground">
@@ -65,7 +72,7 @@ export function TaskCategories({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories.map((category) => (
+            {sortedCategories.map((category) => (
               <TableRow key={category.id} className="group">
                 <TableCell>
                   <div
