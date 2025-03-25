@@ -41,11 +41,11 @@ export function TaskArchive({
     <div
       ref={setNodeRef}
       data-container="archive"
-      className={`flex-shrink-0 w-[250px] rounded-xl shadow-sm border border-border min-h-[200px]
+      className={`w-full rounded-xl shadow-sm border border-border
         ${isOver ? "bg-accent/50" : "bg-card"}
       `}
     >
-      <div className="p-4 border-b border-border/50 w-full backdrop-blur-sm">
+      <div className="p-4 border-b border-border/50 w-full">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Archive className="h-4 w-4" />
@@ -57,8 +57,8 @@ export function TaskArchive({
         </div>
       </div>
 
-      <div className="p-3 w-full min-h-[150px] flex flex-col">
-        <div className="space-y-3 w-full flex-1">
+      <div className="p-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           <SortableContext
             id="archive"
             items={sortedTasks}
