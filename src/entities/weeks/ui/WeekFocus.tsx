@@ -110,7 +110,8 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
-        className="w-full"
+        className="w-full border-b border-border/50"
+        defaultValue="all"
       >
         <TabsList className="w-full grid grid-cols-4 mb-3">
           <TabsTrigger value="all" className="text-xs">
@@ -137,7 +138,7 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
         </TabsList>
       </Tabs>
 
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
+      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-muted/50">
         <AnimatePresence>
           {sortedFocuses.length === 0 ? (
             <motion.div
@@ -159,7 +160,7 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ delay: index * 0.05 }}
                 className={cn(
-                  "flex items-start gap-2 group p-3 rounded-lg transition-all",
+                  "flex items-center gap-2 group p-3 rounded-lg transition-all",
                   "border border-transparent hover:border-border/80",
                   focusStatusColors[focus.status].bg.replace(
                     "bg-",

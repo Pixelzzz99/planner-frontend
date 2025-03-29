@@ -67,7 +67,7 @@ export default function YearDashboardPage() {
 
     if (start) {
       const startDate = new Date(start);
-      // Проверка на понедельник
+      // Проверка на понедельник (1 - понедельник в getDay())
       if (startDate.getDay() !== 1) {
         errors.startDate = "Неделя должна начинаться с понедельника";
       }
@@ -111,12 +111,19 @@ export default function YearDashboardPage() {
     return sundayDate.toISOString().split("T")[0];
   };
 
+  // Добавляем вспомогательную функцию для определения понедельника
+  const isMonday = (dateStr: string): boolean => {
+    const date = new Date(dateStr);
+    return date.getDay() === 1; // 1 - понедельник в getDay()
+  };
+
   const handleOpenAddWeekModal = (monthId: string) => {
-    const month = yearData?.find((m) => m.id === monthId);
+    if (!yearData) return;
+    const month = yearData[0].months.find((m) => m.id === monthId);
     if (month) {
       setSelectedMonth({
-        year: new Date().getFullYear(), // или получите год из данных месяца
-        month: month.month, // предполагая, что у вас есть номер месяца в данных
+        year: yearData[0].year || new Date().getFullYear(), // используем год из данных месяца или текущий
+        month: month.month,
       });
     }
     setSelectedMonthId(monthId);
@@ -130,8 +137,8 @@ export default function YearDashboardPage() {
     const newStartDate = e.target.value;
     setStartDate(newStartDate);
 
-    const startDateObj = new Date(newStartDate);
-    if (startDateObj.getDay() === 1) {
+    // Используем новую функцию для проверки понедельника
+    if (isMonday(newStartDate)) {
       // Если выбран понедельник
       const sunday = getNextSunday(newStartDate);
       setEndDate(sunday);
@@ -177,45 +184,56 @@ export default function YearDashboardPage() {
     deleteWeekMutation.mutate(weekId);
   };
 
+  if (!yearData || yearData.length === 0) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <h1 className="text-2xl font-bold text-primary/50">
+          Нет данных за год
+        </h1>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <Loader className="w-12 h-12 text-primary/50" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[1600px] mx-auto px-4 py-6">
-      <YearPageHeader />
-
-      {isLoading ? (
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader className="w-12 h-12 text-primary/50" />
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
-            <div className="lg:col-span-3">
-              <div className="sticky top-6">
-                <GoalsSection />
-              </div>
+      <YearPageHeader year={yearData[0].year} />
+      <>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
+          <div className="lg:col-span-3">
+            <div className="sticky top-6">
+              <GoalsSection />
             </div>
+          </div>
 
-            <div className="lg:col-span-9">
-              <div className="bg-card/95 backdrop-blur-sm rounded-xl p-6 shadow-md border border-border/50 transition-all">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-6">
-                  Обзор года
-                </h2>
-                <div className="overflow-x-auto pb-2">
-                  <div className="flex flex-nowrap gap-6 pb-4 px-1">
-                    {yearData?.map((month) => (
-                      <MonthCard
-                        key={month.id}
-                        month={month}
-                        onAddWeek={() => handleOpenAddWeekModal(month.id)}
-                        onDeleteWeek={handleDeleteWeek}
-                      />
-                    ))}
-                  </div>
+          <div className="lg:col-span-9">
+            <div className="bg-card/95 backdrop-blur-sm rounded-xl p-6 shadow-md border border-border/50 transition-all">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-6">
+                Обзор года
+              </h2>
+              <div className="overflow-x-auto pb-2">
+                <div className="flex flex-nowrap gap-6 pb-4 px-1">
+                  {yearData[0]?.months.map((month) => (
+                    <MonthCard
+                      key={month.id}
+                      month={month}
+                      onAddWeek={() => handleOpenAddWeekModal(month.id)}
+                      onDeleteWeek={handleDeleteWeek}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px] bg-card/95 backdrop-blur-sm border-border/50">

@@ -2,7 +2,7 @@ export const WeekSkeleton = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="fixed top-0 left-0 right-0 bg-background z-10 border-b">
-        <div className="container mx-auto px-6 py-4">
+        <div className="mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="h-8 w-64 bg-muted animate-pulse rounded" />
             <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
@@ -10,7 +10,7 @@ export const WeekSkeleton = () => {
         </div>
       </div>
 
-      <div className="container mx-auto p-6 pt-24">
+      <div className="mx-auto p-6 pt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-3 space-y-6">
             <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-48 animate-pulse" />
