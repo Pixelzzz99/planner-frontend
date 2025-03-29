@@ -11,10 +11,11 @@ import {
 import { Trash2 } from "lucide-react";
 
 const statusStyles = {
-  TODO: "bg-secondary text-secondary-foreground",
-  IN_PROGRESS: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
+  TODO: "bg-secondary/80 text-secondary-foreground",
+  IN_PROGRESS:
+    "bg-blue-100/80 dark:bg-blue-900/80 text-blue-700 dark:text-blue-300",
   COMPLETED:
-    "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
+    "bg-green-100/80 dark:bg-green-900/80 text-green-700 dark:text-green-300",
 };
 
 const statusLabels = {
@@ -37,21 +38,21 @@ export function GoalItem({
   onStatusChange,
 }: GoalItemProps) {
   return (
-    <div className="group flex items-center gap-4 p-3 hover:bg-accent/50 rounded-lg transition-colors overflow-hidden">
-      <div className="flex-1 min-w-0 flex items-center gap-3">
+    <div className="group flex flex-col sm:flex-row sm:items-center gap-3 p-3 hover:bg-accent/30 rounded-lg transition-all">
+      <div className="flex-1 min-w-0">
         <EditableText
           text={goal.title}
           onSave={onUpdate}
-          className="text-foreground hover:bg-accent px-2 py-1 rounded-md w-full"
+          className="text-foreground hover:bg-accent/50 px-3 py-1.5 rounded-md w-full transition-colors font-medium"
         />
       </div>
 
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-3 mt-2 sm:mt-0">
         <Select value={goal.status} onValueChange={onStatusChange}>
           <SelectTrigger
             className={`h-7 px-3 text-sm font-medium rounded-full border-none ${
               statusStyles[goal.status as keyof typeof statusStyles]
-            }`}
+            } transition-all backdrop-blur-sm`}
           >
             <SelectValue>
               {statusLabels[goal.status as keyof typeof statusLabels]}
@@ -68,9 +69,9 @@ export function GoalItem({
           variant="ghost"
           size="sm"
           onClick={onDelete}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full p-2 h-8 w-8"
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full p-2 h-8 w-8 transition-colors"
         >
-          <Trash2 size={16} />
+          <Trash2 size={16} className="transition-transform hover:scale-110" />
         </Button>
       </div>
     </div>
