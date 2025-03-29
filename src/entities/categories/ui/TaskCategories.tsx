@@ -12,9 +12,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMemo } from "react";
+import { Task } from "@/entities/task";
 
 interface TaskCategoriesProps {
   categories: Category[];
+  tasks?: Task[];
   onAddCategory: () => void;
   onEditCategory: (
     id: string,
@@ -26,6 +28,7 @@ interface TaskCategoriesProps {
 
 export function TaskCategories({
   categories,
+  tasks = [],
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
@@ -36,6 +39,26 @@ export function TaskCategories({
       (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)
     );
   }, [categories]);
+
+  // Подсчитываем фактическое время (duration) по категориям из текущих задач недели
+  const categoriesActualTime = useMemo(() => {
+    const timeByCategory: Record<string, number> = {};
+
+    // Инициализируем все категории нулевым значением
+    categories.forEach((category) => {
+      timeByCategory[category.id] = 0;
+    });
+
+    // Суммируем duration задач по категориям
+    tasks.forEach((task) => {
+      if (task.categoryId && !task.isArchived) {
+        timeByCategory[task.categoryId] =
+          (timeByCategory[task.categoryId] || 0) + (task.duration || 0);
+      }
+    });
+
+    return timeByCategory;
+  }, [categories, tasks]);
 
   return (
     <div className="border border-border p-4 rounded-md shadow-sm bg-card">
@@ -102,7 +125,7 @@ export function TaskCategories({
                     />
                     <span className="text-muted-foreground">/</span>
                     <span className="text-muted-foreground w-12 text-center">
-                      {category.actualTime || 0}
+                      {categoriesActualTime[category.id] || 0}
                     </span>
                     <span className="text-muted-foreground">ч</span>
                   </div>

@@ -227,10 +227,10 @@ export default function WeekPage() {
       />
 
       {/* Main Content */}
-      <div className="mx-auto p-6 pt-24">
+      <div className="mx-auto p-6 pt-24 pb-[300px]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Левая колонка с WeekFocus и TaskCategories */}
-          <LeftSidePage userId={userId} weekId={weekId} />
+          <LeftSidePage userId={userId} weekId={weekId} tasks={tasks} />
 
           {/* Правая колонка с DndContext */}
           <div className="lg:col-span-9">
@@ -241,7 +241,7 @@ export default function WeekPage() {
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
-              <div className="grid grid-cols-1 gap-6">
+              <div>
                 <div className="overflow-hidden">
                   <div className="flex items-start gap-4 overflow-x-auto pb-4">
                     {DAYS.map((day) => (
@@ -254,14 +254,16 @@ export default function WeekPage() {
                         openAddTask={openAddTask}
                         openEditTask={openEditTask}
                         handleDeleteTask={handleDeleteTask}
-                        dropLine={dropLine} // Передаем информацию об индикаторе
+                        dropLine={dropLine}
                       />
                     ))}
                   </div>
                 </div>
+              </div>
 
-                {/* Архив */}
-                <div className="bg-card rounded-xl shadow-sm">
+              {/* Фиксированный архив внизу */}
+              <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t border-border">
+                <div className="container mx-auto p-6">
                   <TaskArchive
                     tasks={archivedTasks!}
                     isLoading={isLoading}
@@ -270,6 +272,7 @@ export default function WeekPage() {
                   />
                 </div>
               </div>
+
               <DragOverlay dropAnimation={defaultDropAnimation}>
                 {activeTask ? (
                   <TaskCard
