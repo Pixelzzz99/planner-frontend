@@ -11,7 +11,6 @@ export const useYearPlan = (userId: string | undefined) => {
     queryKey: yearPlanKeys.byUserId(userId ?? ""),
     queryFn: () => fetchYearPlan(userId!),
     enabled: !!userId,
-    select: (data) => data[0].months,
     staleTime: 5 * 60 * 1000, // считаем данные свежими 5 минут
   });
 };
