@@ -72,13 +72,37 @@ export default function YearDashboardPage() {
         errors.startDate = "Неделя должна начинаться с понедельника";
       }
 
-      // Проверка правильного месяца
-      if (
-        selectedMonth &&
-        (startDate.getMonth() !== selectedMonth.month - 1 ||
-          startDate.getFullYear() !== selectedMonth.year)
-      ) {
-        errors.startDate = "Дата должна быть в выбранном месяце";
+      // Проверка, что дата начала относится к выбранному месяцу или предыдущему
+      if (selectedMonth) {
+        const selectedMonthDate = new Date(
+          selectedMonth.year,
+          selectedMonth.month - 1,
+          1
+        );
+        const prevMonth = new Date(selectedMonthDate);
+        prevMonth.setMonth(prevMonth.getMonth() - 1);
+
+        // Проверка, что дата начала в текущем или предыдущем месяце
+        const isCurrentMonth =
+          startDate.getMonth() === selectedMonthDate.getMonth() &&
+          startDate.getFullYear() === selectedMonthDate.getFullYear();
+        const isPrevMonth =
+          startDate.getMonth() === prevMonth.getMonth() &&
+          startDate.getFullYear() === prevMonth.getFullYear();
+
+        // Если дата в предыдущем месяце, проверяем, что она в последние 7 дней месяца
+        if (isPrevMonth) {
+          const lastDayOfPrevMonth = new Date(selectedMonthDate);
+          lastDayOfPrevMonth.setDate(0);
+          const dayDiff = lastDayOfPrevMonth.getDate() - startDate.getDate();
+
+          if (dayDiff >= 7) {
+            errors.startDate =
+              "Для предыдущего месяца доступны только последние 7 дней";
+          }
+        } else if (!isCurrentMonth) {
+          errors.startDate = "Дата должна быть в текущем или предыдущем месяце";
+        }
       }
     }
 
@@ -90,13 +114,23 @@ export default function YearDashboardPage() {
         errors.endDate = "Дата окончания не может быть раньше даты начала";
       }
 
-      // Проверка правильного месяца для конечной даты
-      if (
-        selectedMonth &&
-        (endDate.getMonth() !== selectedMonth.month - 1 ||
-          endDate.getFullYear() !== selectedMonth.year)
-      ) {
-        errors.endDate = "Дата должна быть в выбранном месяце";
+      // Проверка, что неделя длится 7 дней
+      const daysDifference = Math.floor(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysDifference !== 6) {
+        errors.endDate =
+          "Неделя должна быть ровно 7 дней (от понедельника до воскресенья)";
+      }
+
+      // Если дата начала не в выбранном месяце, проверяем, что дата окончания в выбранном месяце
+      if (selectedMonth && startDate.getMonth() !== selectedMonth.month - 1) {
+        const isEndDateInCurrentMonth =
+          endDate.getMonth() === selectedMonth.month - 1 &&
+          endDate.getFullYear() === selectedMonth.year;
+        if (!isEndDateInCurrentMonth) {
+          errors.endDate = "Неделя должна включать дни выбранного месяца";
+        }
       }
     }
 
@@ -258,9 +292,19 @@ export default function YearDashboardPage() {
                 }`}
                 min={
                   selectedMonth
-                    ? `${selectedMonth.year}-${String(
-                        selectedMonth.month
-                      ).padStart(2, "0")}-01`
+                    ? (() => {
+                        // Получаем первый день предыдущего месяца
+                        // Получаем последний день предыдущего месяца
+                        const lastDayPrevMonth = new Date(
+                          selectedMonth.year,
+                          selectedMonth.month - 1,
+                          0
+                        );
+                        // Получаем дату за 7 дней до конца месяца (для ограничения)
+                        const limitDay = new Date(lastDayPrevMonth);
+                        limitDay.setDate(lastDayPrevMonth.getDate() - 6);
+                        return limitDay.toISOString().split("T")[0];
+                      })()
                     : undefined
                 }
                 max={
@@ -276,6 +320,10 @@ export default function YearDashboardPage() {
                   {dateErrors.startDate}
                 </p>
               )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Можно выбрать понедельник из текущего или предыдущего месяца (до
+                7 дней)
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
@@ -291,7 +339,6 @@ export default function YearDashboardPage() {
                     : "hover:border-primary/50 focus:border-primary"
                 }`}
                 min={startDate}
-                max={startDate ? getNextSunday(startDate) : undefined}
                 disabled={!startDate || new Date(startDate).getDay() !== 1}
               />
               {dateErrors.endDate && (
@@ -301,7 +348,9 @@ export default function YearDashboardPage() {
               )}
               {startDate && new Date(startDate).getDay() === 1 && (
                 <p className="text-sm text-muted-foreground mt-1 italic">
-                  Конец недели автоматически установлен на воскресенье
+                  {endDate
+                    ? "Выбран период с понедельника по воскресенье"
+                    : "Конец недели автоматически установлен на воскресенье"}
                 </p>
               )}
             </div>
