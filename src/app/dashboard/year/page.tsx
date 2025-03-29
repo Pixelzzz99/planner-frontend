@@ -13,7 +13,6 @@ import { YearPageHeader } from "@/widgets/year/YearPageHeader";
 import { MonthCard } from "@/entities/month/ui/MonthCard";
 import { GoalsSection } from "@/widgets/goals/GoalsSection";
 import { useSession } from "next-auth/react";
-import { Loader } from "@/shared/ui/loader";
 import { useYearPlan } from "@/entities/year-plan/hooks/useYearPlan";
 import { useCreateWeek, useDeleteWeek } from "@/entities/weeks/hooks/use-week";
 
@@ -21,6 +20,29 @@ interface DateError {
   startDate?: string;
   endDate?: string;
 }
+
+interface LoaderProps {
+  className?: string;
+}
+
+const Loader = ({ className }: LoaderProps) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+};
 
 export default function YearDashboardPage() {
   const { data: session } = useSession();
@@ -157,16 +179,15 @@ export default function YearDashboardPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Calendrium</h1>
-        <YearPageHeader />
-      </div>
+      <YearPageHeader />
 
       {isLoading ? (
-        <Loader />
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <Loader className="w-12 h-12 text-primary/50" />
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
             <div className="lg:col-span-3">
               <div className="sticky top-6">
                 <GoalsSection />
@@ -174,12 +195,12 @@ export default function YearDashboardPage() {
             </div>
 
             <div className="lg:col-span-9">
-              <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
-                <h2 className="text-2xl font-semibold text-foreground mb-6">
+              <div className="bg-card/95 backdrop-blur-sm rounded-xl p-6 shadow-md border border-border/50 transition-all">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-6">
                   Обзор года
                 </h2>
-                <div className="overflow-x-auto">
-                  <div className="flex flex-nowrap gap-6 pb-4">
+                <div className="overflow-x-auto pb-2">
+                  <div className="flex flex-nowrap gap-6 pb-4 px-1">
                     {yearData?.map((month) => (
                       <MonthCard
                         key={month.id}
@@ -197,23 +218,25 @@ export default function YearDashboardPage() {
       )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] bg-card/95 backdrop-blur-sm border-border/50">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-foreground">
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               Добавить неделю
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="space-y-5 mt-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Начало недели (понедельник)
               </label>
               <Input
                 type="date"
                 value={startDate}
                 onChange={handleStartDateChange}
-                className={`w-full ${
-                  dateErrors.startDate ? "border-red-500" : ""
+                className={`w-full transition-all ${
+                  dateErrors.startDate
+                    ? "border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]"
+                    : "hover:border-primary/50 focus:border-primary"
                 }`}
                 min={
                   selectedMonth
@@ -237,15 +260,17 @@ export default function YearDashboardPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Конец недели (воскресенье)
               </label>
               <Input
                 type="date"
                 value={endDate}
                 onChange={handleEndDateChange}
-                className={`w-full ${
-                  dateErrors.endDate ? "border-red-500" : ""
+                className={`w-full transition-all ${
+                  dateErrors.endDate
+                    ? "border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]"
+                    : "hover:border-primary/50 focus:border-primary"
                 }`}
                 min={startDate}
                 max={startDate ? getNextSunday(startDate) : undefined}
@@ -257,20 +282,26 @@ export default function YearDashboardPage() {
                 </p>
               )}
               {startDate && new Date(startDate).getDay() === 1 && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-1 italic">
                   Конец недели автоматически установлен на воскресенье
                 </p>
               )}
             </div>
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setIsOpen(false)}>
+            <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+              <Button
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+                className="hover:bg-background/80"
+              >
                 Отмена
               </Button>
               <Button
                 onClick={handleAddWeek}
                 disabled={!!dateErrors.startDate || !!dateErrors.endDate}
+                className="relative overflow-hidden group"
               >
-                Сохранить
+                <span className="relative z-10">Сохранить</span>
+                <span className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary opacity-0 group-hover:opacity-100 transition-opacity"></span>
               </Button>
             </div>
           </div>

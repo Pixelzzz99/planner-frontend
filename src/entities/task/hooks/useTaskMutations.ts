@@ -181,10 +181,14 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
 
     if (!taskToMove) return;
 
+    // Добавляем проверку: если задача уже в архиве и пытаемся её архивировать
+    if (isArchive && taskToMove.isArchived) {
+      return; // Просто игнорируем такое действие
+    }
+
     if (isArchive) {
       handleArchiveTask(taskToMove, taskId);
-      // Убираем вызов debouncedSyncWithServer для архивации
-      return;
+      return; // Убираем вызов debouncedSyncWithServer для архивации
     } else if (taskToMove.isArchived) {
       handleUnarchiveTask(taskToMove, taskId, destinationDay);
     } else {
@@ -196,6 +200,11 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   };
 
   const handleArchiveTask = (task: Task, taskId: string) => {
+    // Если задача уже в архиве, игнорируем операцию
+    if (task.isArchived) {
+      return;
+    }
+
     // При архивации уменьшаем actualTime
     if (task.categoryId && task.duration) {
       updateCategoryActualTime(task.categoryId, -task.duration);
@@ -203,7 +212,13 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
 
     // Оптимистичное обновление UI
     updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
-    updateArchivedTasks((tasks) => [...tasks, { ...task, isArchived: true }]);
+    updateArchivedTasks((tasks) => {
+      // Проверяем, нет ли уже такой задачи в архиве
+      if (tasks.some((t) => t.id === taskId)) {
+        return tasks;
+      }
+      return [...tasks, { ...task, isArchived: true }];
+    });
 
     // Отправляем запрос на сервер без debounce
     moveTask({

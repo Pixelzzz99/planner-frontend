@@ -39,6 +39,10 @@ export function DayColumn({
     return [...day.tasks].sort((a, b) => a.position - b.position);
   }, [day.tasks]);
 
+  const totalDuration = useMemo(() => {
+    return day.tasks.reduce((sum, task) => sum + (task.duration || 0), 0);
+  }, [day.tasks]);
+
   return (
     <div
       className={`flex-shrink-0 w-[250px] rounded-xl shadow-sm border border-border ${
@@ -48,8 +52,9 @@ export function DayColumn({
       data-container={day.id}
     >
       <div className="p-4 border-b border-border/50 w-full backdrop-blur-sm">
-        <h2 className="font-semibold text-foreground/90 text-center">
+        <h2 className="font-semibold text-foreground/90 text-center flex items-center justify-center gap-2">
           {day.label}
+          <span className="text-sm text-muted-foreground">{totalDuration}</span>
         </h2>
       </div>
       {/* Делаем всю область дня droppable */}

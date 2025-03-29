@@ -40,7 +40,7 @@ export function EditableText({ text, onSave, className }: EditableTextProps) {
   return (
     <div
       onClick={() => setIsEditing(true)}
-      className={cn("cursor-text max-w-full", className)}
+      className={cn("cursor-text w-full break-words", className)}
     >
       {isEditing ? (
         <Textarea
@@ -54,7 +54,7 @@ export function EditableText({ text, onSave, className }: EditableTextProps) {
           autoFocus
         />
       ) : (
-        <span className="block py-1 whitespace-pre-wrap break-words">
+        <span className="block py-1 whitespace-pre-wrap break-words overflow-wrap-anywhere">
           {text}
         </span>
       )}
