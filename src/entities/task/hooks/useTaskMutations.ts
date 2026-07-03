@@ -16,18 +16,29 @@ interface UseTaskMutationsProps {
   weekId: string;
 }
 
-const POSITION_STEP = 1000;
+// Computes a fractional position between neighbours.
+// afterTaskId: null → before all (insert at top), undefined → after all (append), uuid → after that task
+const computeFractionalPosition = (
+  siblings: Pick<Task, "id" | "position">[],
+  afterTaskId: string | null | undefined
+): number => {
+  const STEP = 1000;
+  if (siblings.length === 0) return STEP;
 
-const recalculatePositions = (tasks: Task[]): Task[] => {
-  return tasks.map((task, index) => ({
-    ...task,
-    position: (index + 1) * POSITION_STEP,
-  }));
+  if (afterTaskId === null) return siblings[0].position / 2;
+  if (afterTaskId === undefined) return siblings[siblings.length - 1].position + STEP;
+
+  const idx = siblings.findIndex((s) => s.id === afterTaskId);
+  if (idx < 0) return siblings[siblings.length - 1].position + STEP;
+
+  const prev = siblings[idx].position;
+  const next = idx + 1 < siblings.length ? siblings[idx + 1].position : null;
+  if (next === null) return prev + STEP;
+  return (prev + next) / 2;
 };
 
-const findTaskById = (tasks: Task[], id: string): Task | undefined => {
-  return tasks.find((task) => task.id === id);
-};
+const findTaskById = (tasks: Task[], id: string): Task | undefined =>
+  tasks.find((t) => t.id === id);
 
 export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   const queryClient = useQueryClient();
@@ -71,7 +82,6 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
       createdAt: new Date().toISOString(),
     } as Task;
 
-    // Оптимистичное обновление UI
     updateWeekTasks((tasks) => [...tasks, newTask]);
 
     const taskData = (() => {
@@ -86,16 +96,12 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     })();
 
     createTask(
-      {
-        weekId,
-        data: taskData,
-      },
+      { weekId, data: taskData },
       {
         onSuccess: (response: Task) => {
           updateWeekTasks((tasks) =>
             tasks.map((t) => (t.id === tempId ? { ...t, id: response.id } : t))
           );
-          // Обновляем actualTime категории при создании задачи
           if (data.categoryId && data.duration) {
             updateCategoryActualTime(data.categoryId, data.duration);
           }
@@ -113,7 +119,6 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
 
     updateTask({ taskId, weekId, data });
 
-    // Обновляем actualTime категории при изменении задачи
     if (oldTask?.categoryId && data.duration !== undefined) {
       const timeChange = data.duration - (oldTask.duration || 0);
       updateCategoryActualTime(oldTask.categoryId, timeChange);
@@ -132,102 +137,83 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     deleteTask({ taskId, weekId });
   };
 
-  const syncWithServer = async (
+  const syncMoveTask = async (
     taskId: string,
     destinationDay: number,
-    targetTaskId?: string,
-    isArchive?: boolean
+    afterTaskId?: string | null
   ) => {
-    try {
-      const { weekTasks } = getTaskState(); // Получаем актуальное состояние
-      const newTask = weekTasks.find((t) => t.id === taskId);
-
-      if (!newTask) return;
-
-      await moveTask({
-        taskId,
-        data: {
-          weekPlanId: weekId,
-          day: destinationDay,
-          isArchive: Boolean(isArchive),
-          position: newTask.position,
-          targetTaskId,
-          date: new Date().toISOString(),
-          archiveReason: isArchive ? "Задача перемещена в архив" : undefined,
-        },
-        weekId,
-      });
-    } catch {
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
-      if (isArchive) {
-        queryClient.invalidateQueries({ queryKey: archivedTasksKeys.all });
-      }
-    }
+    moveTask({
+      taskId,
+      data: {
+        weekPlanId: weekId,
+        day: destinationDay,
+        afterTaskId,
+        date: new Date().toISOString(),
+      },
+      weekId,
+    });
   };
 
-  const debouncedSyncWithServer = useDebounce(syncWithServer, 1000);
+  const syncUnarchiveTask = (taskId: string, destinationDay: number) => {
+    moveTask({
+      taskId,
+      data: {
+        weekPlanId: weekId,
+        day: destinationDay,
+        isArchive: false,
+        date: new Date().toISOString(),
+      },
+      weekId,
+    });
+  };
 
+  const debouncedSyncMove = useDebounce(syncMoveTask, 500);
+
+  // afterTaskId: null = insert at top, undefined = append to end, uuid = insert after that task
   const commitTaskPosition = async (
     taskId: string,
     destinationDay: number,
-    targetTaskId?: string,
+    afterTaskId?: string | null,
     isArchive?: boolean
   ) => {
     const { weekTasks, archivedTasks } = getTaskState();
 
-    // Упрощаем поиск задачи
     const taskToMove =
       findTaskById(weekTasks, taskId) || findTaskById(archivedTasks, taskId);
-
     if (!taskToMove) return;
 
-    // Добавляем проверку: если задача уже в архиве и пытаемся её архивировать
-    if (isArchive && taskToMove.isArchived) {
-      return; // Просто игнорируем такое действие
-    }
+    if (isArchive && taskToMove.isArchived) return;
 
     if (isArchive) {
       handleArchiveTask(taskToMove, taskId);
-      return; // Убираем вызов debouncedSyncWithServer для архивации
     } else if (taskToMove.isArchived) {
       handleUnarchiveTask(taskToMove, taskId, destinationDay);
+      syncUnarchiveTask(taskId, destinationDay);
     } else {
-      handleMoveTask(taskToMove, taskId, destinationDay, targetTaskId);
+      handleMoveTask(taskToMove, taskId, destinationDay, afterTaskId);
+      debouncedSyncMove(taskId, destinationDay, afterTaskId);
     }
-
-    // Используем debounce только для обычного перемещения задач
-    debouncedSyncWithServer(taskId, destinationDay, targetTaskId, isArchive);
   };
 
   const handleArchiveTask = (task: Task, taskId: string) => {
-    // Если задача уже в архиве, игнорируем операцию
-    if (task.isArchived) {
-      return;
-    }
+    if (task.isArchived) return;
 
-    // При архивации уменьшаем actualTime
     if (task.categoryId && task.duration) {
       updateCategoryActualTime(task.categoryId, -task.duration);
     }
 
-    // Оптимистичное обновление UI
     updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
     updateArchivedTasks((tasks) => {
-      // Проверяем, нет ли уже такой задачи в архиве
-      if (tasks.some((t) => t.id === taskId)) {
-        return tasks;
-      }
+      if (tasks.some((t) => t.id === taskId)) return tasks;
       return [...tasks, { ...task, isArchived: true }];
     });
 
-    // Отправляем запрос на сервер без debounce
     moveTask({
       taskId,
       data: {
         weekPlanId: weekId,
         day: task.day,
         isArchive: true,
-        position: task.position,
         date: new Date().toISOString(),
         archiveReason: "Задача перемещена в архив",
       },
@@ -240,19 +226,19 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     taskId: string,
     destinationDay: number
   ) => {
-    // При разархивации увеличиваем actualTime
     if (task.categoryId && task.duration) {
       updateCategoryActualTime(task.categoryId, task.duration);
     }
 
     updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== taskId));
     updateWeekTasks((tasks) => {
-      const updatedTasks = [
-        ...tasks.filter((t) => t.id !== taskId),
-        { ...task, isArchived: false, day: destinationDay },
-      ];
-
-      return organizeTasksByDay(updatedTasks, destinationDay);
+      const others = tasks.filter((t) => t.id !== taskId);
+      const destSiblings = others
+        .filter((t) => t.day === destinationDay && !t.isArchived)
+        .sort((a, b) => a.position - b.position);
+      const newPosition = computeFractionalPosition(destSiblings, undefined); // append to end
+      return [...others, { ...task, isArchived: false, day: destinationDay, position: newPosition }]
+        .sort((a, b) => a.day - b.day || a.position - b.position);
     });
   };
 
@@ -260,54 +246,21 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     task: Task,
     taskId: string,
     destinationDay: number,
-    targetTaskId?: string
+    afterTaskId?: string | null
   ) => {
     updateWeekTasks((tasks) => {
-      const tasksWithoutMoved = tasks.filter((t) => t.id !== taskId);
-      const destinationTasks = tasksWithoutMoved.filter(
-        (t) => t.day === destinationDay
-      );
+      const others = tasks.filter((t) => t.id !== taskId);
+      const destSiblings = others
+        .filter((t) => t.day === destinationDay && !t.isArchived)
+        .sort((a, b) => a.position - b.position);
 
-      const updatedDestinationTasks = insertTaskAtPosition(
-        destinationTasks,
-        { ...task, day: destinationDay },
-        targetTaskId
-      );
+      const newPosition = computeFractionalPosition(destSiblings, afterTaskId);
+      const moved = { ...task, day: destinationDay, position: newPosition };
 
-      return organizeTasksByDay(
-        [
-          ...tasksWithoutMoved.filter((t) => t.day !== destinationDay),
-          ...updatedDestinationTasks,
-        ],
-        destinationDay
+      return [...others, moved].sort(
+        (a, b) => a.day - b.day || a.position - b.position
       );
     });
-  };
-
-  const insertTaskAtPosition = (
-    tasks: Task[],
-    taskToInsert: Task,
-    targetTaskId?: string
-  ): Task[] => {
-    const sortedTasks = [...tasks].sort((a, b) => a.position - b.position);
-    const insertIndex = targetTaskId
-      ? Math.max(
-          0,
-          sortedTasks.findIndex((t) => t.id === targetTaskId)
-        )
-      : sortedTasks.length;
-
-    sortedTasks.splice(insertIndex, 0, taskToInsert);
-    return recalculatePositions(sortedTasks);
-  };
-
-  const organizeTasksByDay = (tasks: Task[], targetDay: number): Task[] => {
-    const dayTasks = tasks.filter((t) => t.day === targetDay);
-    const otherTasks = tasks.filter((t) => t.day !== targetDay);
-
-    return [...otherTasks, ...recalculatePositions(dayTasks)].sort(
-      (a, b) => a.day - b.day || a.position - b.position
-    );
   };
 
   return {

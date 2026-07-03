@@ -12,6 +12,8 @@ import {
   DragStartEvent,
   DragOverEvent,
   pointerWithin,
+  closestCenter,
+  CollisionDetection,
 } from "@dnd-kit/core";
 
 //constants
@@ -81,28 +83,62 @@ export default function WeekPage() {
     })
   );
 
-  // Добавляем стейт для активной задачи
+  // Custom collision detection: within a day column, use closestCenter among its
+  // tasks so `over` resolves to a Task even in gaps between cards.
+  const collisionDetection: CollisionDetection = (args) => {
+    const archiveHits = pointerWithin({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (c) => c.data.current?.type === "archive"
+      ),
+    });
+    if (archiveHits.length > 0) return archiveHits;
+
+    const columnHits = pointerWithin({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (c) => c.data.current?.type === "day-column"
+      ),
+    });
+    if (columnHits.length === 0) return [];
+
+    const columnId = String(columnHits[0].id);
+    const tasksInColumn = args.droppableContainers.filter(
+      (c) =>
+        c.data.current?.type === "Task" &&
+        c.data.current?.container === columnId
+    );
+
+    if (tasksInColumn.length > 0) {
+      const taskHits = closestCenter({ ...args, droppableContainers: tasksInColumn });
+      if (taskHits.length > 0) return taskHits;
+    }
+
+    return columnHits; // empty column
+  };
+
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
-  // Добавляем стейт для хранения начального контейнера
-  // Добавляем состояние для индикатора
+  // Visual indicator only (targetId = task uuid or day-column string like "1")
   const [dropLine, setDropLine] = useState<{
     targetId: string | null;
     position: "before" | "after" | null;
-  }>({
-    targetId: null,
-    position: null,
-  });
+  }>({ targetId: null, position: null });
+
+  const resetIndicators = () => {
+    setActiveTask(null);
+    setDropLine({ targetId: null, position: null });
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = event.active.data.current?.task as Task;
-    if (task) {
-      setActiveTask(task);
-    }
+    if (task) setActiveTask(task);
   };
 
+  // handleDragOver is ONLY responsible for the visual drop indicator.
+  // Actual position is computed fresh in handleDragEnd.
   const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
+    const { over, active } = event;
     if (!over) {
       setDropLine({ targetId: null, position: null });
       return;
@@ -110,108 +146,94 @@ export default function WeekPage() {
 
     const overData = over.data.current;
     const overType = overData?.type;
-    const overContainer = overData?.container;
 
-    // Если перетаскивание происходит по колонке дня
-    if (overType === "day-column") {
-      const targetDay = parseInt(overContainer as string);
-      // Если активная задача существует и целевой день совпадает с днем задачи,
-      // то индикатор не отображается.
-      if (activeTask && targetDay === activeTask.day) {
+    if (overType === "Task") {
+      const overTask = overData!.task as Task;
+      if (overTask.id === active.id) {
         setDropLine({ targetId: null, position: null });
-      } else {
-        setDropLine({ targetId: overContainer ?? null, position: "after" });
+        return;
       }
-    } else if (overType === "archive") {
-      // Для области архива индикатор не нужен
-      setDropLine({ targetId: null, position: null });
+
+      const activeRect = active.rect.current.translated;
+      const activeCenterY = activeRect ? activeRect.top + activeRect.height / 2 : null;
+      const overCenterY = over.rect.top + over.rect.height / 2;
+      const isBefore = activeCenterY !== null && activeCenterY < overCenterY;
+
+      setDropLine({ targetId: overTask.id, position: isBefore ? "before" : "after" });
+    } else if (overType === "day-column") {
+      setDropLine({ targetId: overData?.container ?? null, position: "after" });
     } else {
       setDropLine({ targetId: null, position: null });
     }
+  };
+
+  // Finds the task BEFORE `overTask` in its column (excluding the dragged task).
+  // Returns null when overTask is already first → insert at very top.
+  const resolveBeforeAfterTaskId = (overTask: Task, activeId: string): string | null => {
+    const dayTasks = (tasksByDay[overTask.day] || [])
+      .filter((t) => !t.isArchived && t.id !== activeId)
+      .sort((a, b) => a.position - b.position);
+    const idx = dayTasks.findIndex((t) => t.id === overTask.id);
+    return idx > 0 ? dayTasks[idx - 1].id : null;
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (!over) return;
+    if (!over) { resetIndicators(); return; }
 
-    const resetIndicators = () => {
-      setActiveTask(null);
-      setDropLine({ targetId: null, position: null });
-    };
-
-    const activeTask = active.data.current?.task as Task;
-    if (!activeTask) return;
+    const dragged = active.data.current?.task as Task;
+    if (!dragged) { resetIndicators(); return; }
 
     const overData = over.data.current;
     const overType = overData?.type;
-    const overContainer = overData?.container;
-    const overTask = overData?.task as Task;
 
+    // ── Archive ──────────────────────────────────────────────────────────────
     if (overType === "archive") {
-      commitTaskPosition(activeTask.id, activeTask.day, undefined, true);
+      commitTaskPosition(dragged.id, dragged.day, undefined, true);
       resetIndicators();
       return;
     }
 
-    if (activeTask.isArchived && overType === "day-column") {
-      handleMoveFromArchiveToDay(activeTask, overContainer);
+    // ── Unarchive → day column ───────────────────────────────────────────────
+    if (dragged.isArchived && overType === "day-column") {
+      const targetDay = parseInt(overData!.container as string);
+      if (!isNaN(targetDay)) commitTaskPosition(dragged.id, targetDay);
       resetIndicators();
       return;
     }
 
+    // ── Drop on task (custom collision → always a task inside a column) ──────
+    if (overType === "Task") {
+      const overTask = overData!.task as Task;
+      if (overTask.id === dragged.id) { resetIndicators(); return; }
+
+      // Recompute before/after fresh from ghost position at the moment of drop
+      const ghostRect = active.rect.current.translated;
+      const ghostCenterY = ghostRect ? ghostRect.top + ghostRect.height / 2 : null;
+      const overCenterY = over.rect.top + over.rect.height / 2;
+      const isBefore = ghostCenterY !== null && ghostCenterY < overCenterY;
+
+      const afterTaskId = isBefore
+        ? resolveBeforeAfterTaskId(overTask, dragged.id)
+        : overTask.id;
+
+      commitTaskPosition(dragged.id, overTask.day, afterTaskId);
+      resetIndicators();
+      return;
+    }
+
+    // ── Empty column fallback ────────────────────────────────────────────────
     if (overType === "day-column") {
-      handleMoveToDay(activeTask, overContainer, overTask);
-      resetIndicators();
-      return;
-    }
-
-    if (overTask) {
-      handleTaskToTaskMove(activeTask, overTask);
+      const targetDay = parseInt(overData!.container as string);
+      if (!isNaN(targetDay) && targetDay !== dragged.day) {
+        commitTaskPosition(dragged.id, targetDay);
+      }
       resetIndicators();
       return;
     }
 
     resetIndicators();
-  };
-
-  const handleMoveFromArchiveToDay = (
-    activeTask: Task,
-    overContainer: string | undefined
-  ) => {
-    const targetDay = parseInt(overContainer as string);
-    if (!isNaN(targetDay)) {
-      commitTaskPosition(activeTask.id, targetDay);
-    }
-  };
-
-  const handleMoveToDay = (
-    activeTask: Task,
-    overContainer: string | undefined,
-    overTask: Task | undefined
-  ) => {
-    const targetDay = parseInt(overContainer as string);
-    if (!isNaN(targetDay) && targetDay === activeTask.day) return;
-    if (overTask) {
-      // Если в дне есть задачи, добавляем после последней
-      commitTaskPosition(activeTask.id, targetDay, overTask.id);
-    } else {
-      // Если день пустой
-      commitTaskPosition(activeTask.id, targetDay);
-    }
-  };
-
-  const handleTaskToTaskMove = (activeTask: Task, overTask: Task) => {
-    if (overTask.isArchived) {
-      commitTaskPosition(activeTask.id, activeTask.day, undefined, true);
-    } else if (activeTask.day !== overTask.day) {
-      commitTaskPosition(activeTask.id, overTask.day, overTask.id);
-    } else if (
-      activeTask.position !== overTask.position &&
-      activeTask.day === overTask.day
-    ) {
-      commitTaskPosition(activeTask.id, activeTask.day, overTask.id);
-    }
   };
 
   if (isLoading) {
@@ -236,7 +258,7 @@ export default function WeekPage() {
           <div className="lg:col-span-9">
             <DndContext
               sensors={sensors}
-              collisionDetection={pointerWithin}
+              collisionDetection={collisionDetection}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
