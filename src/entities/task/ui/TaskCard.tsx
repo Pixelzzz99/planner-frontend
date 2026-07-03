@@ -1,7 +1,9 @@
+"use client";
+
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { GripVertical, Pencil, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Trash2, Clock } from "lucide-react";
 import { Task } from "../models/task.model";
 import { CSSProperties } from "react";
 
@@ -12,96 +14,127 @@ interface TaskCardProps {
   onDelete: (taskId: string) => void;
 }
 
-export function TaskCard({
-  task,
-  containerId,
-  onEdit,
-  onDelete,
-}: TaskCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: task.id,
-    data: {
-      type: "Task",
-      task,
-      container: containerId,
-    },
-  });
+const PRIORITY_CONFIG = {
+  HIGH:   { color: "#EF4444", label: "Высокий", dot: "bg-red-500" },
+  MEDIUM: { color: "#F59E0B", label: "Средний", dot: "bg-amber-400" },
+  LOW:    { color: "#10B981", label: "Низкий",  dot: "bg-emerald-500" },
+} as const;
+
+const STATUS_CONFIG = {
+  COMPLETED:   { label: "Готово",     class: "text-emerald-400", bar: "#10B981" },
+  IN_PROGRESS: { label: "В работе",   class: "text-blue-400",    bar: "#06B6D4" },
+  TODO:        { label: "Ожидает",    class: "text-muted-foreground", bar: "#6B7280" },
+} as const;
+
+export function TaskCard({ task, containerId, onEdit, onDelete }: TaskCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({
+      id: task.id,
+      data: { type: "Task", task, container: containerId },
+    });
+
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.4 : 1,
   };
+
+  const priority = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.LOW;
+  const status = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.TODO;
+  const isCompleted = task.status === "COMPLETED";
 
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`
-        group p-3 w-full relative
-        rounded-lg hover:bg-accent border border-border mb-auto 
-        ${isDragging ? "opacity-50" : ""}
-        ${task.status === "COMPLETED" ? "opacity-60" : ""}
-        bg-background
+        group relative w-full rounded-xl border transition-all duration-300 cursor-default
+        dark:glass dark:hover:border-white/15
+        light:bg-card light:hover:shadow-md
+        border-white/8 hover:-translate-y-0.5
+        hover:shadow-[0_8px_24px_rgba(139,92,246,0.12)]
+        ${isCompleted ? "opacity-60" : ""}
+        animate-slide-in-up
       `}
     >
-      <div className="flex gap-3 w-full">
-        <div
+      {/* Priority accent bar */}
+      <div
+        className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full"
+        style={{ backgroundColor: priority.color }}
+      />
+
+      <div className="flex gap-2 p-3 pl-4">
+        {/* Drag handle */}
+        <button
           {...attributes}
           {...listeners}
-          className="flex items-center text-gray-400 hover:text-gray-600"
+          className="flex items-start pt-0.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors touch-none"
+          tabIndex={-1}
         >
-          <GripVertical className="h-5 w-5" />
-        </div>
+          <GripVertical className="h-4 w-4" />
+        </button>
+
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-foreground mb-1 select-text">
+          <p
+            className={`text-sm font-medium leading-snug select-text ${
+              isCompleted ? "line-through text-muted-foreground" : "text-foreground"
+            }`}
+          >
             {task.title}
-          </h3>
+          </p>
+
           {task.description && (
-            <p className="text-sm text-foreground line-clamp-2 select-text">
+            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 select-text">
               {task.description}
             </p>
           )}
-          <div className="mt-2 flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                task.status === "COMPLETED"
-                  ? "bg-green-500"
-                  : task.status === "IN_PROGRESS"
-                  ? "bg-blue-500"
-                  : "bg-gray-300"
-              }`}
-            />
-            <span className="text-xs text-gray-500">
-              {task.status === "COMPLETED"
-                ? "Завершено"
-                : task.status === "IN_PROGRESS"
-                ? "В работе"
-                : "К выполнению"}
+
+          {/* Meta row */}
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {/* Status */}
+            <span className={`text-xs font-medium ${status.class} flex items-center gap-1`}>
+              <span
+                className="inline-block w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: status.bar }}
+              />
+              {status.label}
             </span>
+
+            {/* Category */}
+            {task.category?.name && (
+              <span className="text-xs px-1.5 py-0.5 rounded-md bg-primary/15 text-primary font-medium">
+                {task.category.name}
+              </span>
+            )}
+
+            {/* Duration */}
+            {task.duration > 0 && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1 ml-auto">
+                <Clock className="h-3 w-3" />
+                {task.duration}м
+              </span>
+            )}
           </div>
         </div>
-        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2">
+
+        {/* Actions — visible on hover */}
+        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
+            className="h-7 w-7 hover:bg-primary/20 hover:text-primary"
             onClick={() => onEdit(task)}
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+            className="h-7 w-7 hover:bg-destructive/20 hover:text-destructive"
             onClick={() => onDelete(task.id)}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
