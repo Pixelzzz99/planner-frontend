@@ -9,8 +9,8 @@ export interface MoveTaskDto {
   date?: string;
   isArchive?: boolean;
   archiveReason?: string;
-  targetTaskId?: string;
-  position?: number;
+  // null = insert at top, undefined (omitted) = append to end, uuid = insert after that task
+  afterTaskId?: string | null;
 }
 
 export type CreateTaskDTO = Omit<Task, "id" | "createdAt" | "category">;

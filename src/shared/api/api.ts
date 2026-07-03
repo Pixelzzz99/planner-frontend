@@ -30,11 +30,11 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       try {
-        await signOut({ redirect: true, callbackUrl: "/auth/login" });
+        await signOut({ redirect: true, callbackUrl: "/login" });
       } catch (signOutError) {
         console.error("Error during sign out:", signOutError);
         if (typeof window !== "undefined") {
-          window.location.href = "/auth/login";
+          window.location.href = "/login";
         }
       }
     }

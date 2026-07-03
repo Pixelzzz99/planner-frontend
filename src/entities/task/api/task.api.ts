@@ -1,13 +1,7 @@
 import { api } from "@/shared/api/api";
 import { CreateTaskDTO, Task } from "../models/task.model";
 
-interface MoveTaskDTO {
-  weekPlanId?: string;
-  day?: number;
-  date?: string;
-  toArchive?: boolean;
-  archiveReason?: string;
-}
+import { MoveTaskDto } from "../models/task.model";
 
 export const taskApi = {
   getTasks: async (weekId: string): Promise<Task[]> => {
@@ -37,7 +31,7 @@ export const taskApi = {
     return res.data;
   },
 
-  moveTask: async (taskId: string, data: MoveTaskDTO): Promise<Task> => {
+  moveTask: async (taskId: string, data: MoveTaskDto): Promise<Task> => {
     const res = await api.patch(`/tasks/${taskId}/move`, data);
     return res.data;
   },
