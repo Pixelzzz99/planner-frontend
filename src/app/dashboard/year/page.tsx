@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -51,6 +51,20 @@ export default function YearDashboardPage() {
   const { data: yearData, isLoading } = useYearPlan(userId);
   const createWeekMutation = useCreateWeek();
   const deleteWeekMutation = useDeleteWeek();
+
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const currentMonthRef = useRef<HTMLDivElement>(null);
+
+  const activeYearData = yearData?.find((y) => y.year === selectedYear);
+
+  // Scroll to current month when year data loads or year changes to current year
+  useEffect(() => {
+    if (selectedYear === currentYear && currentMonthRef.current) {
+      currentMonthRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [activeYearData, selectedYear, currentYear]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonthId, setSelectedMonthId] = useState<string | null>(null);
@@ -152,11 +166,11 @@ export default function YearDashboardPage() {
   };
 
   const handleOpenAddWeekModal = (monthId: string) => {
-    if (!yearData) return;
-    const month = yearData[0].months.find((m) => m.id === monthId);
+    if (!activeYearData) return;
+    const month = activeYearData.months.find((m) => m.id === monthId);
     if (month) {
       setSelectedMonth({
-        year: yearData[0].year || new Date().getFullYear(), // используем год из данных месяца или текущий
+        year: activeYearData.year,
         month: month.month,
       });
     }
@@ -218,16 +232,6 @@ export default function YearDashboardPage() {
     deleteWeekMutation.mutate(weekId);
   };
 
-  if (!yearData || yearData.length === 0) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <h1 className="text-2xl font-bold text-primary/50">
-          Нет данных за год
-        </h1>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -238,7 +242,11 @@ export default function YearDashboardPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 py-6">
-      <YearPageHeader year={yearData[0].year} />
+      <YearPageHeader
+        year={selectedYear}
+        onPrevYear={() => setSelectedYear((y) => y - 1)}
+        onNextYear={() => setSelectedYear((y) => y + 1)}
+      />
       <>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
           <div className="lg:col-span-3">
@@ -252,18 +260,30 @@ export default function YearDashboardPage() {
               <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-6">
                 Обзор года
               </h2>
-              <div className="overflow-x-auto pb-2">
-                <div className="flex flex-nowrap gap-6 pb-4 px-1">
-                  {yearData[0]?.months.map((month) => (
-                    <MonthCard
-                      key={month.id}
-                      month={month}
-                      onAddWeek={() => handleOpenAddWeekModal(month.id)}
-                      onDeleteWeek={handleDeleteWeek}
-                    />
-                  ))}
+              {!activeYearData ? (
+                <div className="flex justify-center items-center py-16">
+                  <p className="text-xl font-semibold text-primary/50">
+                    Нет данных за {selectedYear} год
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="overflow-x-auto pb-2">
+                  <div className="flex flex-nowrap gap-6 pb-4 px-1">
+                    {activeYearData.months.map((month) => (
+                      <div
+                        key={month.id}
+                        ref={month.month === currentMonth && selectedYear === currentYear ? currentMonthRef : null}
+                      >
+                        <MonthCard
+                          month={month}
+                          onAddWeek={() => handleOpenAddWeekModal(month.id)}
+                          onDeleteWeek={handleDeleteWeek}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
