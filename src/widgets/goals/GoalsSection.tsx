@@ -13,9 +13,9 @@ import { Goal } from "@/entities/goals/model/goal.dto";
 import { GoalItem } from "@/entities/goals/ui/GoalItem";
 import { Plus } from "lucide-react";
 
-export function GoalsSection() {
+export function GoalsSection({ year }: { year: number }) {
   const { goals, isLoading, error, createGoal, updateGoal, deleteGoal } =
-    useGoals();
+    useGoals(year);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal | null>(null);
   const [goalTitle, setGoalTitle] = useState("");

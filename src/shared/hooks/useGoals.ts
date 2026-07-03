@@ -8,49 +8,45 @@ import {
 } from "@/entities/goals/api/goal.api";
 import { Goal } from "@/entities/goals/model/goal.dto";
 
-export function useGoals() {
+export function useGoals(year: number) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const queryClient = useQueryClient();
 
-  // Загрузка целей
   const {
     data: goals = [],
     isLoading,
     error,
   } = useQuery<Goal[]>({
-    queryKey: ["goals", userId],
-    queryFn: () => (userId ? fetchGoals(userId) : Promise.resolve([])),
+    queryKey: ["goals", userId, year],
+    queryFn: () => (userId ? fetchGoals(userId, year) : Promise.resolve([])),
     enabled: !!userId,
   });
 
-  // Создание цели
   const createMutation = useMutation({
-    mutationFn: (title: string) => createGoal(userId!, title),
+    mutationFn: (title: string) => createGoal(userId!, title, year),
     onSuccess: (newGoal) => {
-      queryClient.setQueryData<Goal[]>(["goals", userId], (old = []) => [
+      queryClient.setQueryData<Goal[]>(["goals", userId, year], (old = []) => [
         ...old,
         newGoal,
       ]);
     },
   });
 
-  // Обновление цели
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; goal: Partial<Goal> }) =>
       updateGoal(data.id, data.goal),
     onSuccess: (updatedGoal) => {
-      queryClient.setQueryData<Goal[]>(["goals", userId], (old = []) =>
+      queryClient.setQueryData<Goal[]>(["goals", userId, year], (old = []) =>
         old.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal))
       );
     },
   });
 
-  // Удаление цели
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteGoal(id),
     onSuccess: (_, deletedId) => {
-      queryClient.setQueryData<Goal[]>(["goals", userId], (old = []) =>
+      queryClient.setQueryData<Goal[]>(["goals", userId, year], (old = []) =>
         old.filter((goal) => goal.id !== deletedId)
       );
     },

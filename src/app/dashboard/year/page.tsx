@@ -15,6 +15,9 @@ import { GoalsSection } from "@/widgets/goals/GoalsSection";
 import { useSession } from "next-auth/react";
 import { useYearPlan } from "@/entities/year-plan/hooks/useYearPlan";
 import { useCreateWeek, useDeleteWeek } from "@/entities/weeks/hooks/use-week";
+import { createYearPlan } from "@/entities/year-plan/api/year-plan.api";
+import { useQueryClient } from "@tanstack/react-query";
+import { yearPlanKeys } from "@/entities/year-plan/hooks/useYearPlan";
 
 interface DateError {
   startDate?: string;
@@ -51,6 +54,19 @@ export default function YearDashboardPage() {
   const { data: yearData, isLoading } = useYearPlan(userId);
   const createWeekMutation = useCreateWeek();
   const deleteWeekMutation = useDeleteWeek();
+  const queryClient = useQueryClient();
+  const [isCreatingYear, setIsCreatingYear] = useState(false);
+
+  const handleCreateYearPlan = async () => {
+    if (!userId) return;
+    setIsCreatingYear(true);
+    try {
+      await createYearPlan(userId, selectedYear);
+      await queryClient.invalidateQueries({ queryKey: yearPlanKeys.byUserId(userId) });
+    } finally {
+      setIsCreatingYear(false);
+    }
+  };
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1; // 1-12
@@ -251,7 +267,7 @@ export default function YearDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
           <div className="lg:col-span-3">
             <div className="sticky top-6">
-              <GoalsSection />
+              <GoalsSection year={selectedYear} />
             </div>
           </div>
 
@@ -261,10 +277,13 @@ export default function YearDashboardPage() {
                 Обзор года
               </h2>
               {!activeYearData ? (
-                <div className="flex justify-center items-center py-16">
+                <div className="flex flex-col items-center justify-center py-16 gap-4">
                   <p className="text-xl font-semibold text-primary/50">
-                    Нет данных за {selectedYear} год
+                    Нет плана на {selectedYear} год
                   </p>
+                  <Button onClick={handleCreateYearPlan} disabled={isCreatingYear}>
+                    {isCreatingYear ? "Создаём..." : `Создать план на ${selectedYear} год`}
+                  </Button>
                 </div>
               ) : (
                 <div className="overflow-x-auto pb-2">

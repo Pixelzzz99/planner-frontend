@@ -1,13 +1,13 @@
 import { api } from "@/shared/api/api";
 import { Goal } from "../model/goal.dto";
 
-export const createGoal = async (userId: string, title: string) => {
-  const response = await api.post(`/goals/${userId}`, { title });
+export const createGoal = async (userId: string, title: string, year: number) => {
+  const response = await api.post(`/goals/${userId}`, { title, year });
   return response.data;
 };
 
-export const fetchGoals = async (userId: string) => {
-  const response = await api.get(`/goals/${userId}`);
+export const fetchGoals = async (userId: string, year: number) => {
+  const response = await api.get(`/goals/${userId}`, { params: { year } });
   return response.data;
 };
 
