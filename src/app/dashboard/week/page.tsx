@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   DndContext,
@@ -37,7 +37,7 @@ import { useTaskMutations } from "@/entities/task/hooks/useTaskMutations";
 import { TaskCard } from "@/entities/task/ui/TaskCard";
 import { useUserId } from "@/shared/lib/hooks/useUserId";
 
-export default function WeekPage() {
+function WeekPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const weekId = searchParams?.get("weekId") ?? "";
@@ -321,5 +321,13 @@ export default function WeekPage() {
         categories={categories}
       />
     </div>
+  );
+}
+
+export default function WeekPage() {
+  return (
+    <Suspense>
+      <WeekPageContent />
+    </Suspense>
   );
 }
