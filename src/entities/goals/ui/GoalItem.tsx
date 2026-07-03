@@ -1,28 +1,14 @@
 import { Goal } from "@/entities/goals/model/goal.dto";
 import { EditableText } from "@/shared/ui/EditableText";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Trash2 } from "lucide-react";
+import { Trash2, Check, Clock, Circle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const statusStyles = {
-  TODO: "bg-secondary/80 text-secondary-foreground",
-  IN_PROGRESS:
-    "bg-blue-100/80 dark:bg-blue-900/80 text-blue-700 dark:text-blue-300",
-  COMPLETED:
-    "bg-green-100/80 dark:bg-green-900/80 text-green-700 dark:text-green-300",
-};
-
-const statusLabels = {
-  TODO: "К выполнению",
-  IN_PROGRESS: "В процессе",
-  COMPLETED: "Завершено",
-};
+const STATUS_CONFIG = {
+  TODO:        { icon: <Circle size={13} className="text-muted-foreground/50" />, label: "Ожидает" },
+  IN_PROGRESS: { icon: <Clock  size={13} className="text-sky-500" />,            label: "В работе" },
+  DONE:        { icon: <Check  size={13} className="text-emerald-500" />,         label: "Готово"   },
+} as const;
 
 interface GoalItemProps {
   goal: Goal;
@@ -31,49 +17,55 @@ interface GoalItemProps {
   onStatusChange: (value: string) => void;
 }
 
-export function GoalItem({
-  goal,
-  onUpdate,
-  onDelete,
-  onStatusChange,
-}: GoalItemProps) {
+const STATUS_ORDER: Array<Goal["status"]> = ["TODO", "IN_PROGRESS", "DONE"];
+
+export function GoalItem({ goal, onUpdate, onDelete, onStatusChange }: GoalItemProps) {
+  const isCompleted = goal.status === "DONE";
+
+  const handleCycleStatus = () => {
+    const idx = STATUS_ORDER.indexOf(goal.status);
+    const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
+    onStatusChange(next);
+  };
+
+  const cfg = STATUS_CONFIG[goal.status] ?? STATUS_CONFIG.TODO;
+
   return (
-    <div className="group flex flex-col sm:flex-row sm:items-center gap-3 p-3 hover:bg-accent/30 rounded-lg transition-all">
+    <div className={cn(
+      "group flex items-center gap-2 px-2 py-2 rounded-xl transition-all",
+      "hover:bg-black/5 dark:hover:bg-white/5",
+      isCompleted && "opacity-60"
+    )}>
+      {/* Status cycle button */}
+      <button
+        onClick={handleCycleStatus}
+        className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded-full hover:bg-primary/15 transition-colors"
+        title={cfg.label}
+      >
+        {cfg.icon}
+      </button>
+
+      {/* Title */}
       <div className="flex-1 min-w-0">
         <EditableText
           text={goal.title}
           onSave={onUpdate}
-          className="text-foreground hover:bg-accent/50 px-3 py-1.5 rounded-md w-full transition-colors font-medium"
+          className={cn(
+            "text-xs w-full rounded-md px-1 py-0.5 hover:bg-black/5 dark:hover:bg-white/8 transition-colors text-foreground",
+            isCompleted && "line-through text-muted-foreground",
+          )}
         />
       </div>
 
-      <div className="flex items-center gap-3 mt-2 sm:mt-0">
-        <Select value={goal.status} onValueChange={onStatusChange}>
-          <SelectTrigger
-            className={`h-7 px-3 text-sm font-medium rounded-full border-none ${
-              statusStyles[goal.status as keyof typeof statusStyles]
-            } transition-all backdrop-blur-sm`}
-          >
-            <SelectValue>
-              {statusLabels[goal.status as keyof typeof statusLabels]}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="TODO">К выполнению</SelectItem>
-            <SelectItem value="IN_PROGRESS">В процессе</SelectItem>
-            <SelectItem value="COMPLETED">Завершено</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onDelete}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full p-2 h-8 w-8 transition-colors"
-        >
-          <Trash2 size={16} className="transition-transform hover:scale-110" />
-        </Button>
-      </div>
+      {/* Delete */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onDelete}
+        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/15 hover:text-destructive flex-shrink-0"
+      >
+        <Trash2 size={12} />
+      </Button>
     </div>
   );
 }

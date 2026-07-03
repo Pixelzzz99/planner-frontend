@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   DndContext,
@@ -74,6 +74,40 @@ function WeekPageContent() {
   const { commitTaskPosition } = useTaskMutations({
     weekId,
   });
+
+  // Current day detection: JS getDay() 0=Sun,1=Mon..6=Sat → our ids 1=Mon..7=Sun
+  const currentDayId = useMemo(() => {
+    const d = new Date().getDay();
+    return d === 0 ? 7 : d;
+  }, []);
+
+  // If the week hasn't started yet or no week loaded, focus Monday (id=1)
+  const focusDayId = useMemo(() => {
+    if (!weekPlan?.startDate) return 1;
+    const start = new Date(weekPlan.startDate);
+    const end   = new Date(weekPlan.endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (today >= start && today <= end) return currentDayId;
+    return 1; // week not current → focus Monday
+  }, [weekPlan, currentDayId]);
+
+  const scrollBoardRef = useRef<HTMLDivElement>(null);
+  const currentDayRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll to current/focus day after render
+  useEffect(() => {
+    if (!weekPlan || !currentDayRef.current || !scrollBoardRef.current) return;
+    const board = scrollBoardRef.current;
+    const col   = currentDayRef.current;
+    const colLeft = col.offsetLeft;
+    const colWidth = col.offsetWidth;
+    const boardWidth = board.clientWidth;
+    board.scrollTo({
+      left: colLeft - (boardWidth - colWidth) / 2,
+      behavior: "smooth",
+    });
+  }, [weekPlan]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -265,7 +299,10 @@ function WeekPageContent() {
             >
               <div>
                 <div className="overflow-hidden">
-                  <div className="flex items-start gap-4 overflow-x-auto pb-4">
+                  <div
+                    ref={scrollBoardRef}
+                    className="flex items-start gap-4 overflow-x-auto pb-4 scroll-smooth"
+                  >
                     {DAYS.map((day) => (
                       <DayColumn
                         key={day.id}
@@ -277,6 +314,8 @@ function WeekPageContent() {
                         openEditTask={openEditTask}
                         handleDeleteTask={handleDeleteTask}
                         dropLine={dropLine}
+                        isCurrentDay={day.id === focusDayId}
+                        scrollToRef={day.id === focusDayId ? currentDayRef : undefined}
                       />
                     ))}
                   </div>

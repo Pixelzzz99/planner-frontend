@@ -257,56 +257,53 @@ export default function YearDashboardPage() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 py-6">
+    <div className="max-w-[1600px] mx-auto px-4 py-6 min-h-screen">
       <YearPageHeader
         year={selectedYear}
         onPrevYear={() => setSelectedYear((y) => y - 1)}
         onNextYear={() => setSelectedYear((y) => y + 1)}
       />
-      <>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
-          <div className="lg:col-span-3">
-            <div className="sticky top-6">
-              <GoalsSection year={selectedYear} />
-            </div>
-          </div>
 
-          <div className="lg:col-span-9">
-            <div className="bg-card/95 backdrop-blur-sm rounded-xl p-6 shadow-md border border-border/50 transition-all">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-6">
-                Обзор года
-              </h2>
-              {!activeYearData ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <p className="text-xl font-semibold text-primary/50">
-                    Нет плана на {selectedYear} год
-                  </p>
-                  <Button onClick={handleCreateYearPlan} disabled={isCreatingYear}>
-                    {isCreatingYear ? "Создаём..." : `Создать план на ${selectedYear} год`}
-                  </Button>
-                </div>
-              ) : (
-                <div className="overflow-x-auto pb-2">
-                  <div className="flex flex-nowrap gap-6 pb-4 px-1">
-                    {activeYearData.months.map((month) => (
-                      <div
-                        key={month.id}
-                        ref={month.month === currentMonth && selectedYear === currentYear ? currentMonthRef : null}
-                      >
-                        <MonthCard
-                          month={month}
-                          onAddWeek={() => handleOpenAddWeekModal(month.id)}
-                          onDeleteWeek={handleDeleteWeek}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Main layout: sidebar + month grid */}
+      <div className="flex gap-6 items-start">
+        {/* Goals sidebar — sticky */}
+        <div className="w-[280px] flex-shrink-0 sticky top-6">
+          <GoalsSection year={selectedYear} />
         </div>
-      </>
+
+        {/* Month grid */}
+        <div className="flex-1 min-w-0">
+          {!activeYearData ? (
+            <div className="flex flex-col items-center justify-center py-32 gap-5 rounded-2xl border border-black/8 dark:border-white/6 glass">
+              <p className="text-2xl font-bold gradient-text">
+                {selectedYear}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                Нет плана на этот год
+              </p>
+              <Button
+                className="px-6 rounded-xl"
+                onClick={handleCreateYearPlan}
+                disabled={isCreatingYear}
+              >
+                {isCreatingYear ? "Создаём..." : `Создать план на ${selectedYear} год`}
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              {activeYearData.months.map((month) => (
+                <MonthCard
+                  key={month.id}
+                  month={month}
+                  onAddWeek={() => handleOpenAddWeekModal(month.id)}
+                  onDeleteWeek={handleDeleteWeek}
+                  isCurrentMonth={month.month === currentMonth && selectedYear === currentYear}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px] bg-card/95 backdrop-blur-sm border-border/50">

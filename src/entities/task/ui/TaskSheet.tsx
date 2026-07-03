@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ListTodo, Type, AlignLeft, Timer, Archive } from "lucide-react";
+import { Timer, Archive, CheckCircle2, Circle, Zap, Tag } from "lucide-react";
 import { getCategoryColor } from "@/shared/lib/utils/color";
 
 interface TaskSheetProps {
@@ -30,6 +30,30 @@ interface TaskSheetProps {
   categories: Array<{ id: string; name: string }>;
 }
 
+const STATUS_OPTIONS = [
+  {
+    value: TaskStatus.TODO,
+    label: "К выполнению",
+    icon: <Circle className="h-3.5 w-3.5 text-muted-foreground" />,
+  },
+  {
+    value: TaskStatus.IN_PROGRESS,
+    label: "В процессе",
+    icon: <Zap className="h-3.5 w-3.5 text-sky-500" />,
+  },
+  {
+    value: TaskStatus.COMPLETED,
+    label: "Выполнено",
+    icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />,
+  },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: "HIGH",   label: "Высокий", color: "#EF4444" },
+  { value: "MEDIUM", label: "Средний", color: "#F59E0B" },
+  { value: "LOW",    label: "Низкий",  color: "#10B981" },
+];
+
 export function TaskSheet({
   isOpen,
   onClose,
@@ -39,134 +63,79 @@ export function TaskSheet({
   onArchive,
   categories,
 }: TaskSheetProps) {
+  const isNew = !taskForm.id;
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[90vw] sm:w-[50vw] sm:max-w-[50vw] h-full flex flex-col overflow-hidden rounded-md border bg-background">
-        {/* Шапка */}
-        <SheetHeader className="border-b px-6 py-4">
-          <SheetTitle>
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold">
-                {taskForm.id ? "Редактировать задачу" : "Новая задача"}
-              </h2>
-            </div>
+      <SheetContent className="w-[95vw] sm:w-[420px] sm:max-w-[420px] h-full flex flex-col gap-0 p-0 border-l border-black/10 dark:border-white/10 glass">
+        {/* Header */}
+        <SheetHeader className="px-6 py-5 border-b border-black/8 dark:border-white/8">
+          <SheetTitle className="gradient-text text-base font-bold">
+            {isNew ? "Новая задача" : "Редактировать задачу"}
           </SheetTitle>
         </SheetHeader>
 
-        {/* Основное содержимое (flex-1, чтобы «тянуться») */}
-        <div className="flex-1 overflow-auto px-6 py-2 space-y-5">
-          {/* Заголовок */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm font-medium text-foreground/70">
-              <Type size={16} className="text-muted-foreground" />
-              Заголовок
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Title */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Название
             </Label>
             <Input
               value={taskForm.title}
-              onChange={(e) =>
-                setTaskForm({ ...taskForm, title: e.target.value })
-              }
-              placeholder="Например: «Подготовить отчёт»"
-              className="focus-visible:ring-1"
+              onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+              placeholder="Что нужно сделать?"
+              className="h-11 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 focus-visible:ring-primary/40 text-sm font-medium"
             />
           </div>
 
-          {/* Статус */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm font-medium text-foreground/70">
-              <ListTodo size={16} className="text-muted-foreground" />
-              Статус
-            </Label>
-            <Select
-              value={taskForm.status}
-              onValueChange={(value: TaskStatus) =>
-                setTaskForm({ ...taskForm, status: value })
-              }
-            >
-              <SelectTrigger className="w-full focus-visible:ring-1">
-                <SelectValue placeholder="Выберите статус" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TaskStatus.TODO}>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-slate-400" />
-                    <span>К выполнению</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value={TaskStatus.IN_PROGRESS}>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <span>В процессе</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value={TaskStatus.COMPLETED}>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span>Выполнено</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Время и Категория в одной строке */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Планируемое время */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm font-medium text-foreground/70">
-                <Timer size={16} className="text-muted-foreground" />
-                Время
-              </Label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  min={0}
-                  value={taskForm.duration || ""}
-                  onChange={(e) =>
-                    setTaskForm({
-                      ...taskForm,
-                      duration: e.target.value
-                        ? Number(e.target.value)
-                        : undefined,
-                    })
-                  }
-                  placeholder="0"
-                  className="pr-8 focus-visible:ring-1"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                  ч
-                </span>
-              </div>
-            </div>
-
-            {/* Категория */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm font-medium text-foreground/70">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-accent">
-                  <span className="h-2 w-2 rounded-full bg-accent-foreground" />
-                </span>
-                Категория
+          {/* Status + Priority row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Статус
               </Label>
               <Select
-                value={taskForm.categoryId}
-                onValueChange={(value: string) =>
-                  setTaskForm({ ...taskForm, categoryId: value })
-                }
+                value={taskForm.status}
+                onValueChange={(v: TaskStatus) => setTaskForm({ ...taskForm, status: v })}
               >
-                <SelectTrigger className="w-full focus-visible:ring-1">
-                  <SelectValue placeholder="Выберите категорию" />
+                <SelectTrigger className="h-10 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center gap-2 flex-1">
-                        <div
-                          className="h-3 w-3 rounded-full"
-                          style={{
-                            backgroundColor: getCategoryColor(category.id),
-                          }}
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex items-center gap-2">
+                        {opt.icon}
+                        <span className="text-xs">{opt.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Приоритет
+              </Label>
+              <Select
+                value={taskForm.priority ?? "LOW"}
+                onValueChange={(v) => setTaskForm({ ...taskForm, priority: v as "HIGH" | "MEDIUM" | "LOW" })}
+              >
+                <SelectTrigger className="h-10 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block w-2 h-2 rounded-full"
+                          style={{ backgroundColor: opt.color }}
                         />
-                        <span>{category.name}</span>
+                        <span className="text-xs">{opt.label}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -175,39 +144,89 @@ export function TaskSheet({
             </div>
           </div>
 
-          {/* Описание */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm font-medium text-foreground/70">
-              <AlignLeft size={16} className="text-muted-foreground" />
+          {/* Duration + Category row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Timer className="h-3 w-3" />
+                Время (мин)
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                value={taskForm.duration || ""}
+                onChange={(e) =>
+                  setTaskForm({
+                    ...taskForm,
+                    duration: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+                placeholder="0"
+                className="h-10 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Tag className="h-3 w-3" />
+                Категория
+              </Label>
+              <Select
+                value={taskForm.categoryId ?? ""}
+                onValueChange={(v) => setTaskForm({ ...taskForm, categoryId: v })}
+              >
+                <SelectTrigger className="h-10 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm">
+                  <SelectValue placeholder="Без категории" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: getCategoryColor(cat.id) }}
+                        />
+                        <span className="text-xs">{cat.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Описание
             </Label>
             <Textarea
               value={taskForm.description || ""}
-              onChange={(e) =>
-                setTaskForm({
-                  ...taskForm,
-                  description: e.target.value,
-                })
-              }
-              placeholder="Добавьте описание задачи..."
-              className="min-h-[120px] focus-visible:ring-1"
+              onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+              placeholder="Дополнительные детали..."
+              className="min-h-[100px] bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm resize-none"
             />
           </div>
         </div>
 
-        {/* Футер (в самом низу) */}
-        <SheetFooter className="border-t px-4 py-4 flex items-center justify-between">
+        {/* Footer */}
+        <SheetFooter className="px-6 py-4 border-t border-black/8 dark:border-white/8 flex-row items-center justify-between gap-3">
           <Button
             variant="ghost"
             onClick={onArchive}
-            className="gap-2 hover:text-red-600 hover:bg-red-50"
+            className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 rounded-xl"
           >
             <Archive className="h-4 w-4" />
             <span className="text-sm">В архив</span>
           </Button>
-          <Button onClick={onSubmit} className="px-4 rounded-md">
-            {taskForm.id ? "Сохранить" : "Создать"}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose} className="h-9 rounded-xl">
+              Отмена
+            </Button>
+            <Button onClick={onSubmit} className="h-9 px-5 rounded-xl">
+              {isNew ? "Создать" : "Сохранить"}
+            </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>

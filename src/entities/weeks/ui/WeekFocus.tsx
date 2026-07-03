@@ -7,6 +7,7 @@ import {
   XCircle,
   Clock,
   MoreHorizontal,
+  Target,
 } from "lucide-react";
 import { useWeekFocuses } from "../hooks/useWeekFocuses";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,14 +24,34 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface WeekFocusProps {
   weekPlanId: string;
 }
+
+const STATUS_ICON: Record<FocusStatus, React.ReactNode> = {
+  [FocusStatus.COMPLETED]:   <Check   size={14} className="text-emerald-500 shrink-0" />,
+  [FocusStatus.CANCELED]:    <XCircle size={14} className="text-red-500 shrink-0" />,
+  [FocusStatus.IN_PROGRESS]: <Clock   size={14} className="text-sky-500 shrink-0" />,
+};
+
+const STATUS_RING: Record<FocusStatus, string> = {
+  [FocusStatus.COMPLETED]:   "border-emerald-500/40 bg-emerald-500/8",
+  [FocusStatus.CANCELED]:    "border-red-500/30 bg-red-500/5 opacity-60",
+  [FocusStatus.IN_PROGRESS]: "border-sky-500/30 bg-sky-500/5",
+};
+
+const FILTER_TABS: { label: string; value: FocusStatus | null }[] = [
+  { label: "Все",       value: null },
+  { label: "В работе", value: FocusStatus.IN_PROGRESS },
+  { label: "Готово",   value: FocusStatus.COMPLETED },
+  { label: "Отменено", value: FocusStatus.CANCELED },
+];
+
+// suppress unused import warning
+void focusStatusColors;
 
 export function WeekFocus({ weekPlanId }: WeekFocusProps) {
   const {
@@ -44,188 +65,150 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
     setStatusFilter,
   } = useWeekFocuses(weekPlanId);
 
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<FocusStatus | null>(null);
 
-  // Сортируем фокусы по дате создания
   const sortedFocuses = useMemo(() => {
     if (!focuses) return [];
-    return [...focuses].sort((a, b) => {
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
+    return [...focuses].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
   }, [focuses]);
 
-  const handleSaveFocus = (id: string, newText: string) => {
-    updateFocus({ id, data: { title: newText } });
-  };
+  const completedCount = sortedFocuses.filter((f) => f.status === FocusStatus.COMPLETED).length;
+  const total = sortedFocuses.length;
+  const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
-  const handleAddFocus = () => {
-    createFocus({ weekPlanId, title: "Новый фокус" });
-  };
-
-  const handleDeleteFocus = (id: string) => {
-    deleteFocus(id);
-  };
-
-  const getStatusIcon = (status: FocusStatus) => {
-    switch (status) {
-      case FocusStatus.COMPLETED:
-        return <Check size={16} className="text-green-600" />;
-      case FocusStatus.CANCELED:
-        return <XCircle size={16} className="text-red-600" />;
-      case FocusStatus.IN_PROGRESS:
-      default:
-        return <Clock size={16} className="text-blue-600" />;
-    }
-  };
-
-  // Функция для изменения фильтра по табам
-  const handleTabChange = (value: string) => {
+  const handleTabChange = (value: FocusStatus | null) => {
     setActiveTab(value);
-    if (value === "all") {
-      setStatusFilter(null);
-    } else if (Object.values(FocusStatus).includes(value as FocusStatus)) {
-      setStatusFilter(value as FocusStatus);
-    }
+    setStatusFilter(value);
   };
 
   if (isLoading) {
-    return <Skeleton className="w-full h-[260px] rounded-lg" />;
+    return <Skeleton className="w-full h-[220px] rounded-2xl" />;
   }
 
   return (
-    <div className="w-full p-5 rounded-lg bg-card border border-border shadow-sm space-y-4 overflow-hidden transition-all duration-200 hover:shadow-md">
-      <div className="flex justify-between items-center">
-        <h2 className="font-semibold text-lg text-foreground">Фокусы недели</h2>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-primary hover:text-primary/80 hover:bg-primary/10"
-          onClick={handleAddFocus}
-        >
-          <Plus size={18} className="mr-1" /> Добавить
-        </Button>
+    <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-primary/15 flex items-center justify-center">
+              <Target className="h-4 w-4 text-primary" />
+            </div>
+            <span className="font-semibold text-sm text-foreground">Фокусы недели</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{completedCount}/{total}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0 rounded-lg hover:bg-primary/15 hover:text-primary"
+              onClick={() => createFocus({ weekPlanId, title: "Новый фокус" })}
+            >
+              <Plus size={16} />
+            </Button>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        {total > 0 && (
+          <div className="h-1 rounded-full bg-black/8 dark:bg-white/8 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${pct}%`,
+                background: "linear-gradient(90deg, #8B5CF6, #06B6D4)",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Filter tabs */}
+        <div className="flex gap-1 mt-3 flex-wrap">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={String(tab.value)}
+              onClick={() => handleTabChange(tab.value)}
+              className={cn(
+                "text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors",
+                activeTab === tab.value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/8"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Табы для фильтрации */}
-      <Tabs
-        value={activeTab}
-        onValueChange={handleTabChange}
-        className="w-full border-b border-border/50"
-        defaultValue="all"
-      >
-        <TabsList className="w-full grid grid-cols-4 mb-3">
-          <TabsTrigger value="all" className="text-xs">
-            Все
-          </TabsTrigger>
-          <TabsTrigger
-            value={FocusStatus.IN_PROGRESS}
-            className="text-xs text-blue-600"
-          >
-            В процессе
-          </TabsTrigger>
-          <TabsTrigger
-            value={FocusStatus.COMPLETED}
-            className="text-xs text-green-600"
-          >
-            Выполнены
-          </TabsTrigger>
-          <TabsTrigger
-            value={FocusStatus.CANCELED}
-            className="text-xs text-red-600"
-          >
-            Отменены
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-muted/50">
-        <AnimatePresence>
+      {/* Focus list */}
+      <div className="px-3 py-2.5 space-y-1.5 max-h-[320px] overflow-y-auto">
+        <AnimatePresence mode="popLayout">
           {sortedFocuses.length === 0 ? (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="text-center text-muted-foreground py-8 bg-muted/20 rounded-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="py-8 text-center text-muted-foreground/60 text-sm"
             >
-              {statusFilter
-                ? "Нет фокусов с выбранным статусом"
-                : "Нет фокусов. Добавьте первый!"}
+              {statusFilter ? "Нет фокусов с таким статусом" : "Добавьте первый фокус"}
             </motion.div>
           ) : (
-            sortedFocuses.map((focus, index) => (
+            sortedFocuses.map((focus, i) => (
               <motion.div
                 key={focus.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: index * 0.05 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ delay: i * 0.03 }}
                 className={cn(
-                  "flex items-center gap-2 group p-3 rounded-lg transition-all",
-                  "border border-transparent hover:border-border/80",
-                  focusStatusColors[focus.status].bg.replace(
-                    "bg-",
-                    "hover:bg-"
-                  ) + "/10"
+                  "flex items-start gap-2.5 p-2.5 rounded-xl border transition-all group",
+                  STATUS_RING[focus.status]
                 )}
               >
-                {getStatusIcon(focus.status)}
-                <div className="flex-1 min-w-0 break-words">
+                <div className="mt-0.5">{STATUS_ICON[focus.status]}</div>
+
+                <div className="flex-1 min-w-0">
                   <EditableText
                     text={focus.title}
-                    onSave={(newText) => handleSaveFocus(focus.id, newText)}
+                    onSave={(t) => updateFocus({ id: focus.id, data: { title: t } })}
                     className={cn(
-                      "px-2 py-1 rounded-md w-full break-words",
-                      focusStatusColors[focus.status].text,
-                      "hover:bg-accent/30 transition-colors"
+                      "text-xs w-full rounded-md px-1 py-0.5 hover:bg-black/5 dark:hover:bg-white/8 transition-colors",
+                      focus.status === FocusStatus.CANCELED && "line-through text-muted-foreground",
+                      focus.status === FocusStatus.COMPLETED && "text-emerald-600 dark:text-emerald-400"
                     )}
                   />
                 </div>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "shrink-0",
-                    focusStatusColors[focus.status].bg + "/40",
-                    focusStatusColors[focus.status].text
-                  )}
-                >
-                  {focusStatusLabels[focus.status]}
-                </Badge>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-black/8 dark:hover:bg-white/10"
                     >
-                      <MoreHorizontal size={16} />
+                      <MoreHorizontal size={13} />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[180px]">
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                      Изменить статус
-                    </div>
-                    {Object.values(FocusStatus).map((status) => (
+                  <DropdownMenuContent align="end" className="w-44">
+                    {Object.values(FocusStatus).map((s) => (
                       <DropdownMenuItem
-                        key={status}
-                        onClick={() => updateFocusStatus(focus.id, status)}
-                        disabled={focus.status === status}
-                        className={cn(
-                          "flex items-center cursor-pointer",
-                          focus.status === status && "bg-accent/50"
-                        )}
+                        key={s}
+                        onClick={() => updateFocusStatus(focus.id, s)}
+                        disabled={focus.status === s}
+                        className="flex items-center gap-2 text-xs"
                       >
-                        {getStatusIcon(status)}
-                        <span className="ml-2">
-                          {focusStatusLabels[status]}
-                        </span>
+                        {STATUS_ICON[s]}
+                        {focusStatusLabels[s]}
                       </DropdownMenuItem>
                     ))}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => handleDeleteFocus(focus.id)}
-                      className="text-red-600 hover:text-red-700 focus:text-red-700 cursor-pointer"
+                      onClick={() => deleteFocus(focus.id)}
+                      className="text-destructive flex items-center gap-2 text-xs"
                     >
-                      <Trash2 size={16} className="mr-2" />
+                      <Trash2 size={13} />
                       Удалить
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -236,14 +219,17 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
         </AnimatePresence>
       </div>
 
-      {focuses.length > 0 && (
-        <Button
-          variant="outline"
-          className="w-full mt-3 bg-primary/5 border-primary/20 hover:bg-primary/10 transition-colors text-primary"
-          onClick={handleAddFocus}
-        >
-          <Plus className="mr-2" /> Добавить фокус
-        </Button>
+      {total > 0 && (
+        <div className="px-3 pb-3">
+          <Button
+            variant="ghost"
+            className="w-full h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/8 rounded-xl"
+            onClick={() => createFocus({ weekPlanId, title: "Новый фокус" })}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Добавить фокус
+          </Button>
+        </div>
       )}
     </div>
   );

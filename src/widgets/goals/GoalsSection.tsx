@@ -11,7 +11,7 @@ import {
 import { useGoals } from "@/shared/hooks/useGoals";
 import { Goal } from "@/entities/goals/model/goal.dto";
 import { GoalItem } from "@/entities/goals/ui/GoalItem";
-import { Plus } from "lucide-react";
+import { Plus, Flame } from "lucide-react";
 
 export function GoalsSection({ year }: { year: number }) {
   const { goals, isLoading, error, createGoal, updateGoal, deleteGoal } =
@@ -20,7 +20,14 @@ export function GoalsSection({ year }: { year: number }) {
   const [currentGoal, setCurrentGoal] = useState<Goal | null>(null);
   const [goalTitle, setGoalTitle] = useState("");
 
+  const handleOpen = (goal: Goal | null = null) => {
+    setCurrentGoal(goal);
+    setGoalTitle(goal?.title ?? "");
+    setIsDialogOpen(true);
+  };
+
   const handleSubmit = () => {
+    if (!goalTitle.trim()) return;
     if (currentGoal) {
       updateGoal({ id: currentGoal.id, goal: { title: goalTitle } });
     } else {
@@ -31,107 +38,128 @@ export function GoalsSection({ year }: { year: number }) {
     setCurrentGoal(null);
   };
 
+  const completedCount = goals?.filter((g) => g.status === "DONE").length ?? 0;
+  const total = goals?.length ?? 0;
+  const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
   if (isLoading) {
     return (
-      <div className="bg-card/95 backdrop-blur-sm rounded-xl border border-border/50 shadow-md p-6 flex justify-center items-center h-32">
-        <div className="animate-pulse text-primary/50">Загрузка...</div>
+      <div className="rounded-2xl glass border border-black/8 dark:border-white/8 p-5 h-40 flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
+
   if (error) {
     return (
-      <div className="bg-card/95 backdrop-blur-sm rounded-xl border border-border/50 shadow-md p-6 text-red-500">
+      <div className="rounded-2xl glass border border-red-500/30 p-5 text-sm text-destructive">
         Ошибка загрузки целей
       </div>
     );
   }
 
   return (
-    <div className="bg-card/95 backdrop-blur-sm rounded-xl border border-border/50 shadow-md overflow-hidden transition-all">
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent px-2">
-            Цели
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsDialogOpen(true)}
-            className="hover:bg-accent/50 gap-2 shrink-0 transition-colors rounded-lg group"
-          >
-            <Plus
-              size={16}
-              className="text-primary group-hover:scale-110 transition-transform"
-            />
-            <span>Создать цель</span>
-          </Button>
-        </div>
-      </div>
-
-      <div className="px-2 py-2 divide-y divide-border/50 overflow-y-auto max-h-[calc(100vh-200px)]">
-        {goals?.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground italic">
-            У вас пока нет целей
+    <>
+      <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
+        {/* Header */}
+        <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center">
+                <Flame className="h-4 w-4 text-orange-500" />
+              </div>
+              <span className="font-semibold text-sm text-foreground">Цели {year}</span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0 rounded-lg hover:bg-primary/15 hover:text-primary"
+              onClick={() => handleOpen()}
+            >
+              <Plus size={16} />
+            </Button>
           </div>
-        ) : (
-          goals?.map((goal) => (
-            <GoalItem
-              key={goal.id}
-              goal={goal}
-              onUpdate={(newText) =>
-                updateGoal({ id: goal.id, goal: { title: newText } })
-              }
-              onDelete={() => deleteGoal(goal.id)}
-              onStatusChange={(value) =>
-                updateGoal({
-                  id: goal.id,
-                  goal: { status: value as Goal["status"] },
-                })
-              }
-            />
-          ))
+
+          {total > 0 && (
+            <>
+              <div className="h-1 rounded-full bg-black/8 dark:bg-white/8 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${pct}%`,
+                    background: "linear-gradient(90deg, #F59E0B, #10B981)",
+                  }}
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                {completedCount} из {total} выполнено
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* List */}
+        <div className="px-2 py-2 space-y-1 max-h-[calc(100vh-300px)] overflow-y-auto">
+          {total === 0 ? (
+            <div className="py-10 text-center text-muted-foreground/50 text-sm">
+              Добавьте первую цель года
+            </div>
+          ) : (
+            goals?.map((goal) => (
+              <GoalItem
+                key={goal.id}
+                goal={goal}
+                onUpdate={(newText) => updateGoal({ id: goal.id, goal: { title: newText } })}
+                onDelete={() => deleteGoal(goal.id)}
+                onStatusChange={(value) =>
+                  updateGoal({ id: goal.id, goal: { status: value as Goal["status"] } })
+                }
+              />
+            ))
+          )}
+        </div>
+
+        {total > 0 && (
+          <div className="px-2 pb-2.5">
+            <Button
+              variant="ghost"
+              className="w-full h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/8 rounded-xl"
+              onClick={() => handleOpen()}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Добавить цель
+            </Button>
+          </div>
         )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-card/95 backdrop-blur-sm border-border/50">
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <DialogTitle className="gradient-text">
               {currentGoal ? "Редактировать цель" : "Новая цель"}
             </DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 pt-2">
             <Input
               value={goalTitle}
               onChange={(e) => setGoalTitle(e.target.value)}
               placeholder="Название цели"
-              className="h-12 transition-all hover:border-primary/50 focus:border-primary"
+              className="h-11"
               autoFocus
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
-            <Button
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              className="hover:bg-background/80"
-            >
-              Отмена
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              className="relative overflow-hidden group"
-              disabled={!goalTitle.trim()}
-            >
-              <span className="relative z-10">
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
+                Отмена
+              </Button>
+              <Button onClick={handleSubmit} disabled={!goalTitle.trim()}>
                 {currentGoal ? "Сохранить" : "Создать"}
-              </span>
-              <span className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary opacity-0 group-hover:opacity-100 transition-opacity"></span>
-            </Button>
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
