@@ -1,16 +1,23 @@
 "use client";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { ChevronLeft, ChevronRight, LogOut, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Sparkles, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 
 interface YearPageHeaderProps {
   year: number;
   onPrevYear: () => void;
   onNextYear: () => void;
+  currentWeekHref?: string;
 }
 
-export const YearPageHeader = ({ year, onPrevYear, onNextYear }: YearPageHeaderProps) => {
+export const YearPageHeader = ({
+  year,
+  onPrevYear,
+  onNextYear,
+  currentWeekHref,
+}: YearPageHeaderProps) => {
   return (
     <div className="flex items-center justify-between px-5 py-3.5 rounded-2xl glass border border-black/8 dark:border-white/6 shadow-lg mb-8">
       <div className="flex items-center gap-2">
@@ -43,6 +50,19 @@ export const YearPageHeader = ({ year, onPrevYear, onNextYear }: YearPageHeaderP
       </div>
 
       <div className="flex items-center gap-2">
+        {currentWeekHref && (
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5 rounded-lg hidden sm:flex"
+          >
+            <Link href={currentWeekHref}>
+              <CalendarDays className="h-3.5 w-3.5" />
+              Текущая неделя
+            </Link>
+          </Button>
+        )}
         <ThemeToggle />
         <Button
           variant="ghost"

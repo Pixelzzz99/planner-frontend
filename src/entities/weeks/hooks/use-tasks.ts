@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { taskApi } from "@/entities/task/api/task.api";
 import {
   CreateTaskDTO,
@@ -33,7 +34,9 @@ export const useCreateTask = () => {
           return { ...old, tasks: [...withoutTemp, createdTask] };
         },
       );
+      toast.success("Задача создана");
     },
+    onError: () => toast.error("Не удалось создать задачу"),
   });
 };
 
@@ -61,7 +64,9 @@ export const useUpdateTask = () => {
           };
         },
       );
+      toast.success("Задача обновлена");
     },
+    onError: () => toast.error("Не удалось обновить задачу"),
   });
 };
 
@@ -69,6 +74,8 @@ export const useDeleteTask = () => {
   return useMutation({
     mutationFn: ({ taskId }: { taskId: string; weekId: string }) =>
       taskApi.deleteTask(taskId),
+    onSuccess: () => toast.success("Задача удалена"),
+    onError: () => toast.error("Не удалось удалить задачу"),
   });
 };
 
@@ -101,6 +108,7 @@ export const useMoveTask = () => {
       queryClient.invalidateQueries({
         queryKey: weekKeys.plan(variables.weekId),
       });
+      toast.error("Не удалось переместить задачу");
     },
   });
 };

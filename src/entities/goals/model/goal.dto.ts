@@ -1,5 +1,5 @@
 export interface Goal {
   id: string;
   title: string;
-  status: "TODO" | "IN_PROGRESS" | "DONE";
+  status: "TODO" | "IN_PROGRESS" | "COMPLETED";
 }

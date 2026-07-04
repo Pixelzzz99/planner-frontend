@@ -6,6 +6,8 @@ import { useState } from "react";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Toaster } from "sonner";
+import { ConfirmProvider } from "@/shared/ui/ConfirmDialog";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -29,7 +31,10 @@ export function Providers({ children }: { children: ReactNode }) {
           enableSystem={false}
           disableTransitionOnChange
         >
-          {children}
+          <ConfirmProvider>
+            {children}
+            <Toaster richColors position="bottom-right" closeButton />
+          </ConfirmProvider>
         </ThemeProvider>
       </SessionProvider>
       <ReactQueryDevtools initialIsOpen={false} />

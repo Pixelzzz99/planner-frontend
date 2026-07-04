@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { habitApi } from "../api/habit.api";
 import { Habit } from "../models/habit.model";
 import { addDays, format, parseISO } from "date-fns";
@@ -35,7 +36,9 @@ export function useHabits(weekStart?: string) {
         ...old,
         { ...habit, logs: [], streak: 0 },
       ]);
+      toast.success("Привычка создана");
     },
+    onError: () => toast.error("Не удалось создать привычку"),
   });
 
   const toggleMutation = useMutation({
@@ -73,6 +76,7 @@ export function useHabits(weekStart?: string) {
       if (context?.previous) {
         queryClient.setQueryData(habitKeys.week(weekKey), context.previous);
       }
+      toast.error("Не удалось обновить привычку");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: habitKeys.week(weekKey) });
@@ -85,7 +89,9 @@ export function useHabits(weekStart?: string) {
       queryClient.setQueryData<Habit[]>(habitKeys.week(weekKey), (old = []) =>
         old.filter((habit) => habit.id !== habitId),
       );
+      toast.success("Привычка удалена");
     },
+    onError: () => toast.error("Не удалось удалить привычку"),
   });
 
   return {

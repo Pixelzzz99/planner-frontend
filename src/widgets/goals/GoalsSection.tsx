@@ -12,10 +12,12 @@ import { useGoals } from "@/shared/hooks/useGoals";
 import { Goal } from "@/entities/goals/model/goal.dto";
 import { GoalItem } from "@/entities/goals/ui/GoalItem";
 import { Plus, Flame } from "lucide-react";
+import { useConfirm } from "@/shared/ui/ConfirmDialog";
 
 export function GoalsSection({ year }: { year: number }) {
   const { goals, isLoading, error, createGoal, updateGoal, deleteGoal } =
     useGoals(year);
+  const confirm = useConfirm();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal | null>(null);
   const [goalTitle, setGoalTitle] = useState("");
@@ -38,7 +40,7 @@ export function GoalsSection({ year }: { year: number }) {
     setCurrentGoal(null);
   };
 
-  const completedCount = goals?.filter((g) => g.status === "DONE").length ?? 0;
+  const completedCount = goals?.filter((g) => g.status === "COMPLETED").length ?? 0;
   const total = goals?.length ?? 0;
   const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
@@ -110,7 +112,15 @@ export function GoalsSection({ year }: { year: number }) {
                 key={goal.id}
                 goal={goal}
                 onUpdate={(newText) => updateGoal({ id: goal.id, goal: { title: newText } })}
-                onDelete={() => deleteGoal(goal.id)}
+                onDelete={async () => {
+                  const ok = await confirm({
+                    title: "Удалить цель?",
+                    description: `«${goal.title}» будет удалена без возможности восстановления.`,
+                    confirmLabel: "Удалить",
+                    destructive: true,
+                  });
+                  if (ok) deleteGoal(goal.id);
+                }}
                 onStatusChange={(value) =>
                   updateGoal({ id: goal.id, goal: { status: value as Goal["status"] } })
                 }

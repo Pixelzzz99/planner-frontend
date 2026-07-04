@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useConfirm } from "@/shared/ui/ConfirmDialog";
 
 interface WeekFocusProps {
   weekPlanId: string;
@@ -57,6 +58,7 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
     statusFilter,
     setStatusFilter,
   } = useWeekFocuses(weekPlanId);
+  const confirm = useConfirm();
 
   const [activeTab, setActiveTab] = useState<FocusStatus | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -100,6 +102,16 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
   const handleTabChange = (value: FocusStatus | null) => {
     setActiveTab(value);
     setStatusFilter(value);
+  };
+
+  const handleDeleteFocus = async (focusId: string, title: string) => {
+    const ok = await confirm({
+      title: "Удалить фокус?",
+      description: `«${title}» будет удалён.`,
+      confirmLabel: "Удалить",
+      destructive: true,
+    });
+    if (ok) deleteFocus(focusId);
   };
 
   if (isLoading) {
@@ -227,7 +239,7 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
                     ))}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => deleteFocus(focus.id)}
+                      onClick={() => handleDeleteFocus(focus.id, focus.title)}
                       className="text-destructive flex items-center gap-2 text-xs"
                     >
                       <Trash2 size={13} />

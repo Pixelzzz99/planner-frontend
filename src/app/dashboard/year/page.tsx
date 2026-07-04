@@ -18,6 +18,9 @@ import { useCreateWeek, useDeleteWeek } from "@/entities/weeks/hooks/use-week";
 import { createYearPlan } from "@/entities/year-plan/api/year-plan.api";
 import { useQueryClient } from "@tanstack/react-query";
 import { yearPlanKeys } from "@/entities/year-plan/hooks/useYearPlan";
+import { toast } from "sonner";
+import { useConfirm } from "@/shared/ui/ConfirmDialog";
+import { findCurrentWeekId } from "@/shared/lib/findCurrentWeek";
 
 interface DateError {
   startDate?: string;
@@ -55,6 +58,7 @@ export default function YearDashboardPage() {
   const createWeekMutation = useCreateWeek();
   const deleteWeekMutation = useDeleteWeek();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const [isCreatingYear, setIsCreatingYear] = useState(false);
 
   const handleCreateYearPlan = async () => {
@@ -63,6 +67,9 @@ export default function YearDashboardPage() {
     try {
       await createYearPlan(selectedYear);
       await queryClient.invalidateQueries({ queryKey: yearPlanKeys.byUserId(userId) });
+      toast.success(`План на ${selectedYear} год создан`);
+    } catch {
+      toast.error("Не удалось создать план года");
     } finally {
       setIsCreatingYear(false);
     }
@@ -244,9 +251,17 @@ export default function YearDashboardPage() {
     setIsOpen(false);
   };
 
-  const handleDeleteWeek = (weekId: string) => {
-    deleteWeekMutation.mutate(weekId);
+  const handleDeleteWeek = async (weekId: string) => {
+    const ok = await confirm({
+      title: "Удалить неделю?",
+      description: "Все задачи этой недели будут удалены без возможности восстановления.",
+      confirmLabel: "Удалить",
+      destructive: true,
+    });
+    if (ok) deleteWeekMutation.mutate(weekId);
   };
+
+  const currentWeekId = findCurrentWeekId(yearData);
 
   if (isLoading) {
     return (
@@ -262,6 +277,9 @@ export default function YearDashboardPage() {
         year={selectedYear}
         onPrevYear={() => setSelectedYear((y) => y - 1)}
         onNextYear={() => setSelectedYear((y) => y + 1)}
+        currentWeekHref={
+          currentWeekId ? `/dashboard/week?weekId=${currentWeekId}` : undefined
+        }
       />
 
       {/* Main layout: sidebar + month grid */}

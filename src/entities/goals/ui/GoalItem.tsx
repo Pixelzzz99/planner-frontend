@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 const STATUS_CONFIG = {
   TODO:        { icon: <Circle size={13} className="text-muted-foreground/50" />, label: "Ожидает" },
   IN_PROGRESS: { icon: <Clock  size={13} className="text-sky-500" />,            label: "В работе" },
-  DONE:        { icon: <Check  size={13} className="text-emerald-500" />,         label: "Готово"   },
+  COMPLETED: { icon: <Check  size={13} className="text-emerald-500" />,         label: "Готово"   },
 } as const;
 
 interface GoalItemProps {
@@ -17,10 +17,10 @@ interface GoalItemProps {
   onStatusChange: (value: string) => void;
 }
 
-const STATUS_ORDER: Array<Goal["status"]> = ["TODO", "IN_PROGRESS", "DONE"];
+const STATUS_ORDER: Array<Goal["status"]> = ["TODO", "IN_PROGRESS", "COMPLETED"];
 
 export function GoalItem({ goal, onUpdate, onDelete, onStatusChange }: GoalItemProps) {
-  const isCompleted = goal.status === "DONE";
+  const isCompleted = goal.status === "COMPLETED";
 
   const handleCycleStatus = () => {
     const idx = STATUS_ORDER.indexOf(goal.status);

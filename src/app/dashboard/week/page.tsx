@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, Suspense, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { WeekSkeleton } from "@/entities/weeks/ui/WeekSkeleton";
 import { WeekPageHeader } from "@/entities/weeks/ui/WeekPageHeader";
 import { LeftSidePage } from "@/widgets/week/LeftSidePage";
@@ -9,12 +10,34 @@ import { TaskSheet } from "@/entities/task/ui/TaskSheet";
 import { useWeekTasks } from "@/entities/task/hooks/useWeekTasks";
 import { useUserId } from "@/shared/lib/hooks/useUserId";
 import { WeekBoard } from "@/widgets/week/WeekBoard";
+import { Button } from "@/components/ui/button";
+import { CalendarDays } from "lucide-react";
+import { useConfirm } from "@/shared/ui/ConfirmDialog";
+
+function WeekPageEmpty() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center gap-4">
+      <CalendarDays className="h-12 w-12 text-muted-foreground/30" />
+      <div>
+        <h1 className="text-xl font-bold">Неделя не выбрана</h1>
+        <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+          Откройте неделю из плана года или перейдите к текущей неделе через
+          навигацию сверху.
+        </p>
+      </div>
+      <Button asChild className="rounded-xl">
+        <Link href="/dashboard/year">Перейти к плану года</Link>
+      </Button>
+    </div>
+  );
+}
 
 function WeekPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const weekId = searchParams?.get("weekId") ?? "";
   const userId = useUserId();
+  const confirm = useConfirm();
 
   const { categories } = useCategoriesWidget();
 
@@ -73,14 +96,45 @@ function WeekPageContent() {
     closeModal();
   };
 
+  const handleDeleteTaskWithConfirm = async (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    const ok = await confirm({
+      title: "Удалить задачу?",
+      description: task
+        ? `«${task.title}» будет удалена без возможности восстановления.`
+        : "Задача будет удалена без возможности восстановления.",
+      confirmLabel: "Удалить",
+      destructive: true,
+    });
+    if (ok) handleDeleteTask(taskId);
+  };
+
+  if (!weekId) {
+    return <WeekPageEmpty />;
+  }
+
   if (isLoading) {
     return <WeekSkeleton />;
   }
 
+  if (!weekPlan) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center gap-4">
+        <h1 className="text-xl font-bold">Неделя не найдена</h1>
+        <p className="text-sm text-muted-foreground">
+          Возможно, она была удалена или ссылка устарела.
+        </p>
+        <Button asChild variant="outline" className="rounded-xl">
+          <Link href="/dashboard/year">К плану года</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-[calc(100vh-3rem)] flex flex-col bg-background overflow-hidden">
       <WeekPageHeader
-        weekPlan={weekPlan!}
+        weekPlan={weekPlan}
         onBack={() => router.push("/dashboard/year")}
       />
 
@@ -90,7 +144,7 @@ function WeekPageContent() {
             <LeftSidePage
               userId={userId}
               weekId={weekId}
-              weekStart={weekPlan?.startDate}
+              weekStart={weekPlan.startDate}
               tasks={tasks}
             />
           </div>
@@ -106,7 +160,7 @@ function WeekPageContent() {
             scrollBoardRef={scrollBoardRef}
             openAddTask={openAddTask}
             openEditTask={openEditTask}
-            handleDeleteTask={handleDeleteTask}
+            handleDeleteTask={handleDeleteTaskWithConfirm}
             commitTaskPosition={commitTaskPosition}
           />
         </main>

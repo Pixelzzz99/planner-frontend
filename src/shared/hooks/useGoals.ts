@@ -1,5 +1,6 @@
 import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   createGoal,
   deleteGoal,
@@ -24,13 +25,15 @@ export function useGoals(year: number) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (title: string) => createGoal(title),
+    mutationFn: (title: string) => createGoal(title, year),
     onSuccess: (newGoal) => {
       queryClient.setQueryData<Goal[]>(["goals", userId, year], (old = []) => [
         ...old,
         newGoal,
       ]);
+      toast.success("Цель создана");
     },
+    onError: () => toast.error("Не удалось создать цель"),
   });
 
   const updateMutation = useMutation({
@@ -41,6 +44,7 @@ export function useGoals(year: number) {
         old.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal))
       );
     },
+    onError: () => toast.error("Не удалось обновить цель"),
   });
 
   const deleteMutation = useMutation({
@@ -49,7 +53,9 @@ export function useGoals(year: number) {
       queryClient.setQueryData<Goal[]>(["goals", userId, year], (old = []) =>
         old.filter((goal) => goal.id !== deletedId)
       );
+      toast.success("Цель удалена");
     },
+    onError: () => toast.error("Не удалось удалить цель"),
   });
 
   return {

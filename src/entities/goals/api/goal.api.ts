@@ -1,8 +1,8 @@
 import { api } from "@/shared/api/api";
 import { Goal } from "../model/goal.dto";
 
-export const createGoal = async (title: string) => {
-  const response = await api.post(`/goals`, { title });
+export const createGoal = async (title: string, year: number) => {
+  const response = await api.post(`/goals`, { title, year });
   return response.data;
 };
 

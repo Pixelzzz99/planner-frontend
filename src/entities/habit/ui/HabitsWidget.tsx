@@ -12,6 +12,7 @@ import {
 import { Plus, Target } from "lucide-react";
 import { useHabits } from "../hooks/useHabits";
 import { HabitRow } from "./HabitRow";
+import { useConfirm } from "@/shared/ui/ConfirmDialog";
 
 interface HabitsWidgetProps {
   weekStart?: string;
@@ -20,6 +21,7 @@ interface HabitsWidgetProps {
 export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
   const { habits, weekDates, isLoading, createHabit, toggleHabitLog, deleteHabit } =
     useHabits(weekStart);
+  const confirm = useConfirm();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [title, setTitle] = useState("");
 
@@ -28,6 +30,19 @@ export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
     createHabit({ title: title.trim() });
     setTitle("");
     setIsDialogOpen(false);
+  };
+
+  const handleDeleteHabit = async (habitId: string) => {
+    const habit = habits.find((h) => h.id === habitId);
+    const ok = await confirm({
+      title: "Удалить привычку?",
+      description: habit
+        ? `«${habit.title}» и все её отметки будут удалены.`
+        : "Привычка будет удалена.",
+      confirmLabel: "Удалить",
+      destructive: true,
+    });
+    if (ok) deleteHabit(habitId);
   };
 
   if (!weekStart) return null;
@@ -70,7 +85,7 @@ export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
                 onToggle={(habitId, date) =>
                   toggleHabitLog({ habitId, date })
                 }
-                onDelete={deleteHabit}
+                onDelete={handleDeleteHabit}
               />
             ))
           )}

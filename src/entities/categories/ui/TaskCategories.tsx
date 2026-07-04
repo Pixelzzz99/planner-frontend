@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { EditableText } from "@/shared/ui/EditableText";
 import { Trash2, Plus, Loader2, Layers } from "lucide-react";
@@ -6,6 +8,7 @@ import { getCategoryColor } from "@/shared/lib/utils/color";
 import { useMemo } from "react";
 import { Task } from "@/entities/task";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/shared/ui/ConfirmDialog";
 
 interface TaskCategoriesProps {
   categories: Category[];
@@ -24,6 +27,7 @@ export function TaskCategories({
   onDeleteCategory,
   isLoading,
 }: TaskCategoriesProps) {
+  const confirm = useConfirm();
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)),
     [categories]
@@ -135,7 +139,15 @@ export function TaskCategories({
                 <Button
                   size="icon"
                   variant="ghost"
-                  onClick={() => onDeleteCategory(cat.id)}
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: "Удалить категорию?",
+                      description: `«${cat.name}» будет удалена.`,
+                      confirmLabel: "Удалить",
+                      destructive: true,
+                    });
+                    if (ok) onDeleteCategory(cat.id);
+                  }}
                   className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/15 hover:text-destructive flex-shrink-0"
                 >
                   <Trash2 size={11} />

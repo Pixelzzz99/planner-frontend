@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { weekApi } from "../api/week.api";
 
 import { yearPlanKeys } from "@/entities/year-plan/hooks/useYearPlan";
@@ -26,7 +27,9 @@ export const useCreateWeek = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: weekKeys.all });
       queryClient.invalidateQueries({ queryKey: yearPlanKeys.all });
+      toast.success("Неделя добавлена");
     },
+    onError: () => toast.error("Не удалось добавить неделю"),
   });
 };
 
@@ -38,6 +41,8 @@ export const useDeleteWeek = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: weekKeys.all });
       queryClient.invalidateQueries({ queryKey: yearPlanKeys.all });
+      toast.success("Неделя удалена");
     },
+    onError: () => toast.error("Не удалось удалить неделю"),
   });
 };
