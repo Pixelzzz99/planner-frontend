@@ -9,7 +9,7 @@ export interface Category {
   id: string;
   userId: string;
   name: string;
-  plannedTime: number;
+  plannedTime: number; // часов в неделю
   actualTime: number;
   createdAt: string;
 }

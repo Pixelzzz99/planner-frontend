@@ -5,7 +5,7 @@ import { EditableText } from "@/shared/ui/EditableText";
 import { Trash2, Plus, Loader2, Layers } from "lucide-react";
 import { Category } from "../model/category.model";
 import { getCategoryColor } from "@/shared/lib/utils/color";
-import { formatDuration } from "@/shared/lib/formatDuration";
+import { formatHoursFromMinutes, formatPlannedHours, parsePlannedHours } from "@/shared/lib/formatDuration";
 import { useMemo } from "react";
 import { Task } from "@/entities/task";
 import { cn } from "@/lib/utils";
@@ -72,10 +72,14 @@ export function TaskCategories({
         ) : (
           sortedCategories.map((cat) => {
             const color = getCategoryColor(cat.id);
-            const planned = cat.plannedTime || 0;
-            const actual = actualTime[cat.id] || 0;
-            const pct = planned > 0 ? Math.min(100, Math.round((actual / planned) * 100)) : 0;
-            const over = actual > planned && planned > 0;
+            const plannedHours = cat.plannedTime || 0;
+            const actualMinutes = actualTime[cat.id] || 0;
+            const plannedMinutes = plannedHours * 60;
+            const pct =
+              plannedMinutes > 0
+                ? Math.min(100, Math.round((actualMinutes / plannedMinutes) * 100))
+                : 0;
+            const over = actualMinutes > plannedMinutes && plannedMinutes > 0;
 
             return (
               <div
@@ -97,7 +101,7 @@ export function TaskCategories({
                   />
 
                   {/* Progress bar */}
-                  {planned > 0 && (
+                  {plannedHours > 0 && (
                     <div className="mt-1 flex items-center gap-1.5">
                       <div className="h-1 flex-1 rounded-full bg-black/8 dark:bg-white/8 overflow-hidden">
                         <div
@@ -109,29 +113,31 @@ export function TaskCategories({
                         />
                       </div>
                       <span className={cn("text-[10px] tabular-nums", over ? "text-red-500" : "text-muted-foreground")}>
-                        {formatDuration(actual)}/{formatDuration(planned)}
+                        {formatHoursFromMinutes(actualMinutes)}/{formatPlannedHours(plannedHours)}
                       </span>
                     </div>
                   )}
 
-                  {planned === 0 && actual > 0 && (
+                  {plannedHours === 0 && actualMinutes > 0 && (
                     <span className="text-[10px] text-muted-foreground/60 pl-1">
-                      {formatDuration(actual)}
+                      {formatHoursFromMinutes(actualMinutes)}
                     </span>
                   )}
                 </div>
 
-                {/* Planned time editable (minutes) */}
+                {/* Planned hours per week */}
                 <div
                   className="flex-shrink-0 flex items-center gap-0.5"
-                  title="Плановое время в минутах"
+                  title="Часов в неделю на эту категорию"
                 >
                   <EditableText
                     text={`${cat.plannedTime || 0}`}
-                    onSave={(v) => onEditCategory(cat.id, { plannedTime: Number(v) || 0 })}
-                    className="text-[10px] w-10 text-center text-muted-foreground hover:bg-black/8 dark:hover:bg-white/10 rounded px-0.5"
+                    onSave={(v) =>
+                      onEditCategory(cat.id, { plannedTime: parsePlannedHours(v) })
+                    }
+                    className="text-[10px] w-8 text-center text-muted-foreground hover:bg-black/8 dark:hover:bg-white/10 rounded px-0.5"
                   />
-                  <span className="text-[10px] text-muted-foreground/50">мин</span>
+                  <span className="text-[10px] text-muted-foreground/50">ч/нед</span>
                 </div>
 
                 {/* Delete */}
@@ -184,6 +190,7 @@ export function TaskCategories({
               <Layers className="h-4 w-4 text-accent" />
             </div>
             <span className="font-semibold text-sm text-foreground">Категории</span>
+            <span className="text-[10px] text-muted-foreground">план — ч/нед</span>
           </div>
           <Button
             size="sm"
