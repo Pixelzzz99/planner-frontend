@@ -9,7 +9,7 @@ export const yearPlanKeys = {
 export const useYearPlan = (userId: string | undefined) => {
   return useQuery({
     queryKey: yearPlanKeys.byUserId(userId ?? ""),
-    queryFn: () => fetchYearPlan(userId!),
+    queryFn: () => fetchYearPlan(),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // считаем данные свежими 5 минут
   });

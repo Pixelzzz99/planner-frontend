@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { TaskCard } from "./TaskCard";
 import { Task } from "../models/task.model";
-import { useMemo, CSSProperties, useRef, useEffect } from "react";
+import { useMemo, CSSProperties, useRef, memo } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 interface DayColumnProps {
@@ -61,7 +61,15 @@ function getProgressColor(pct: number): string {
   return "#CBD5E1";
 }
 
-export function DayColumn({ day, openAddTask, openEditTask, handleDeleteTask, dropLine, isCurrentDay, scrollToRef }: DayColumnProps) {
+export const DayColumn = memo(function DayColumn({
+  day,
+  openAddTask,
+  openEditTask,
+  handleDeleteTask,
+  dropLine,
+  isCurrentDay,
+  scrollToRef,
+}: DayColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: String(day.id),
     data: { container: String(day.id), type: "day-column" },
@@ -204,4 +212,4 @@ export function DayColumn({ day, openAddTask, openEditTask, handleDeleteTask, dr
       </div>
     </div>
   );
-}
+});

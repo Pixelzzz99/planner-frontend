@@ -59,10 +59,5 @@ export const useMoveTask = () => {
         queryKey: weekKeys.plan(variables.weekId),
       });
     },
-    onSettled: (_, __, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: weekKeys.plan(variables.weekId),
-      });
-    },
   });
 };

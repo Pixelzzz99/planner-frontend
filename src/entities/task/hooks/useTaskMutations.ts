@@ -9,33 +9,15 @@ import {
 import { CreateTaskDTO, UpdateTaskDTO, Task } from "../models/task.model";
 import { archivedTasksKeys } from "./useArchivedTasks";
 import { TaskState } from "../types/task-operations";
-import { useDebounce } from "@/shared/lib/hooks/useDebounce";
 import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories";
+import { computeFractionalPosition } from "../lib/computeFractionalPosition";
+import { useMoveQueue } from "./useMoveQueue";
+import { useCallback, useRef } from "react";
+import { taskApi } from "../api/task.api";
 
 interface UseTaskMutationsProps {
   weekId: string;
 }
-
-// Computes a fractional position between neighbours.
-// afterTaskId: null → before all (insert at top), undefined → after all (append), uuid → after that task
-const computeFractionalPosition = (
-  siblings: Pick<Task, "id" | "position">[],
-  afterTaskId: string | null | undefined
-): number => {
-  const STEP = 1000;
-  if (siblings.length === 0) return STEP;
-
-  if (afterTaskId === null) return siblings[0].position / 2;
-  if (afterTaskId === undefined) return siblings[siblings.length - 1].position + STEP;
-
-  const idx = siblings.findIndex((s) => s.id === afterTaskId);
-  if (idx < 0) return siblings[siblings.length - 1].position + STEP;
-
-  const prev = siblings[idx].position;
-  const next = idx + 1 < siblings.length ? siblings[idx + 1].position : null;
-  if (next === null) return prev + STEP;
-  return (prev + next) / 2;
-};
 
 const findTaskById = (tasks: Task[], id: string): Task | undefined =>
   tasks.find((t) => t.id === id);
@@ -47,8 +29,28 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   const { mutate: createTask } = useCreateTask();
   const { mutate: updateTask } = useUpdateTask();
   const { mutate: deleteTask } = useDeleteTask();
-  const { mutate: moveTask } = useMoveTask();
+  const { mutateAsync: moveTaskAsync } = useMoveTask();
   const { updateCategoryTime } = useCategoriesWidget();
+
+  const weekIdRef = useRef(weekId);
+  weekIdRef.current = weekId;
+
+  const executeMove = useCallback(
+    async ({
+      taskId,
+      data,
+      weekId: moveWeekId,
+    }: {
+      taskId: string;
+      data: Parameters<typeof taskApi.moveTask>[1];
+      weekId: string;
+    }) => {
+      await moveTaskAsync({ taskId, data, weekId: moveWeekId });
+    },
+    [moveTaskAsync],
+  );
+
+  const { enqueue } = useMoveQueue(executeMove);
 
   const getTaskState = (): TaskState => ({
     weekTasks:
@@ -137,39 +139,25 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     deleteTask({ taskId, weekId });
   };
 
-  const syncMoveTask = async (
+  const queueMoveTask = (
     taskId: string,
     destinationDay: number,
-    afterTaskId?: string | null
+    afterTaskId?: string | null,
+    extra?: Partial<Parameters<typeof taskApi.moveTask>[1]>,
   ) => {
-    moveTask({
+    enqueue({
       taskId,
+      weekId: weekIdRef.current,
       data: {
-        weekPlanId: weekId,
+        weekPlanId: weekIdRef.current,
         day: destinationDay,
         afterTaskId,
         date: new Date().toISOString(),
+        ...extra,
       },
-      weekId,
     });
   };
 
-  const syncUnarchiveTask = (taskId: string, destinationDay: number) => {
-    moveTask({
-      taskId,
-      data: {
-        weekPlanId: weekId,
-        day: destinationDay,
-        isArchive: false,
-        date: new Date().toISOString(),
-      },
-      weekId,
-    });
-  };
-
-  const debouncedSyncMove = useDebounce(syncMoveTask, 500);
-
-  // afterTaskId: null = insert at top, undefined = append to end, uuid = insert after that task
   const commitTaskPosition = async (
     taskId: string,
     destinationDay: number,
@@ -188,10 +176,10 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
       handleArchiveTask(taskToMove, taskId);
     } else if (taskToMove.isArchived) {
       handleUnarchiveTask(taskToMove, taskId, destinationDay);
-      syncUnarchiveTask(taskId, destinationDay);
+      queueMoveTask(taskId, destinationDay, undefined, { isArchive: false });
     } else {
       handleMoveTask(taskToMove, taskId, destinationDay, afterTaskId);
-      debouncedSyncMove(taskId, destinationDay, afterTaskId);
+      queueMoveTask(taskId, destinationDay, afterTaskId);
     }
   };
 
@@ -208,16 +196,16 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
       return [...tasks, { ...task, isArchived: true }];
     });
 
-    moveTask({
+    enqueue({
       taskId,
+      weekId: weekIdRef.current,
       data: {
-        weekPlanId: weekId,
+        weekPlanId: weekIdRef.current,
         day: task.day,
         isArchive: true,
         date: new Date().toISOString(),
         archiveReason: "Задача перемещена в архив",
       },
-      weekId,
     });
   };
 
@@ -236,7 +224,7 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
       const destSiblings = others
         .filter((t) => t.day === destinationDay && !t.isArchived)
         .sort((a, b) => a.position - b.position);
-      const newPosition = computeFractionalPosition(destSiblings, undefined); // append to end
+      const newPosition = computeFractionalPosition(destSiblings, undefined);
       return [...others, { ...task, isArchived: false, day: destinationDay, position: newPosition }]
         .sort((a, b) => a.day - b.day || a.position - b.position);
     });

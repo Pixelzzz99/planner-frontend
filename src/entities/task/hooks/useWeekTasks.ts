@@ -19,7 +19,7 @@ export const useWeekTasks = (weekId: string) => {
     setTaskForm,
   } = useTaskForm();
 
-  const { createNewTask, updateExistingTask, deleteExistingTask } =
+  const { createNewTask, updateExistingTask, deleteExistingTask, commitTaskPosition } =
     useTaskMutations({ weekId });
 
   const handleSubmitTask = () => {
@@ -50,5 +50,6 @@ export const useWeekTasks = (weekId: string) => {
     closeModal,
     handleSubmitTask,
     handleDeleteTask,
+    commitTaskPosition,
   };
 };

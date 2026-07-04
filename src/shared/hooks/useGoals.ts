@@ -19,12 +19,12 @@ export function useGoals(year: number) {
     error,
   } = useQuery<Goal[]>({
     queryKey: ["goals", userId, year],
-    queryFn: () => (userId ? fetchGoals(userId, year) : Promise.resolve([])),
+    queryFn: () => (userId ? fetchGoals() : Promise.resolve([])),
     enabled: !!userId,
   });
 
   const createMutation = useMutation({
-    mutationFn: (title: string) => createGoal(userId!, title, year),
+    mutationFn: (title: string) => createGoal(title),
     onSuccess: (newGoal) => {
       queryClient.setQueryData<Goal[]>(["goals", userId, year], (old = []) => [
         ...old,

@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Pencil, Trash2, Clock } from "lucide-react";
 import { Task } from "../models/task.model";
-import { CSSProperties } from "react";
+import { CSSProperties, memo } from "react";
 
 interface TaskCardProps {
   task: Task;
@@ -26,7 +26,12 @@ const STATUS_CONFIG = {
   TODO:        { label: "Ожидает",  bar: "#94A3B8", cls: "text-muted-foreground" },
 } as const;
 
-export function TaskCard({ task, containerId, onEdit, onDelete }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({
+  task,
+  containerId,
+  onEdit,
+  onDelete,
+}: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -147,4 +152,4 @@ export function TaskCard({ task, containerId, onEdit, onDelete }: TaskCardProps)
       </div>
     </div>
   );
-}
+});
