@@ -6,8 +6,10 @@ export const createGoal = async (title: string) => {
   return response.data;
 };
 
-export const fetchGoals = async () => {
-  const response = await api.get(`/goals`);
+export const fetchGoals = async (year?: number) => {
+  const response = await api.get(`/goals`, {
+    params: year ? { year } : {},
+  });
   return response.data;
 };
 

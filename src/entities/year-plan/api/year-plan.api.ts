@@ -6,7 +6,7 @@ export async function fetchYearPlan(): Promise<YearPlan[]> {
   return response.data;
 }
 
-export async function createYearPlan(): Promise<YearPlan> {
-  const response = await api.post<YearPlan>(`/year-plan`);
+export async function createYearPlan(year?: number): Promise<YearPlan> {
+  const response = await api.post<YearPlan>(`/year-plan`, year ? { year } : {});
   return response.data;
 }

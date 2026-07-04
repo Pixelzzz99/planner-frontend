@@ -19,7 +19,7 @@ export function useGoals(year: number) {
     error,
   } = useQuery<Goal[]>({
     queryKey: ["goals", userId, year],
-    queryFn: () => (userId ? fetchGoals() : Promise.resolve([])),
+    queryFn: () => (userId ? fetchGoals(year) : Promise.resolve([])),
     enabled: !!userId,
   });
 

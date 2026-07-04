@@ -61,7 +61,7 @@ export default function YearDashboardPage() {
     if (!userId) return;
     setIsCreatingYear(true);
     try {
-      await createYearPlan();
+      await createYearPlan(selectedYear);
       await queryClient.invalidateQueries({ queryKey: yearPlanKeys.byUserId(userId) });
     } finally {
       setIsCreatingYear(false);
