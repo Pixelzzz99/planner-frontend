@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useYearPlan } from "@/entities/year-plan/hooks/useYearPlan";
 import { useGoals } from "@/shared/hooks/useGoals";
+import { QueryErrorState } from "@/shared/ui/QueryErrorState";
 import { findCurrentWeekId } from "@/shared/lib/findCurrentWeek";
 
 export default function DashboardPage() {
@@ -20,7 +21,7 @@ export default function DashboardPage() {
   const userId = session?.user?.id;
   const currentYear = new Date().getFullYear();
 
-  const { data: yearPlans, isLoading } = useYearPlan(userId);
+  const { data: yearPlans, isLoading, error, refetch } = useYearPlan(userId);
   const { goals } = useGoals(currentYear);
 
   const currentYearPlan = yearPlans?.find((y) => y.year === currentYear);
@@ -45,6 +46,15 @@ export default function DashboardPage() {
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="w-8 h-8 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <QueryErrorState
+        message="Не удалось загрузить данные обзора"
+        onRetry={() => refetch()}
+      />
     );
   }
 

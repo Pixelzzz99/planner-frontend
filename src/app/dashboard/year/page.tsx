@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { yearPlanKeys } from "@/entities/year-plan/hooks/useYearPlan";
 import { toast } from "sonner";
 import { useConfirm } from "@/shared/ui/ConfirmDialog";
+import { QueryErrorState } from "@/shared/ui/QueryErrorState";
 import { findCurrentWeekId } from "@/shared/lib/findCurrentWeek";
 
 interface DateError {
@@ -55,7 +56,7 @@ export default function YearDashboardPage() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  const { data: yearData, isLoading } = useYearPlan(userId);
+  const { data: yearData, isLoading, error, refetch } = useYearPlan(userId);
   const createWeekMutation = useCreateWeek();
   const deleteWeekMutation = useDeleteWeek();
   const queryClient = useQueryClient();
@@ -269,6 +270,15 @@ export default function YearDashboardPage() {
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader className="w-12 h-12 text-primary/50" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <QueryErrorState
+        message="Не удалось загрузить план года"
+        onRetry={() => refetch()}
+      />
     );
   }
 

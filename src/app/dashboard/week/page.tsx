@@ -8,10 +8,10 @@ import { LeftSidePage } from "@/widgets/week/LeftSidePage";
 import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories";
 import { TaskSheet } from "@/entities/task/ui/TaskSheet";
 import { useWeekTasks } from "@/entities/task/hooks/useWeekTasks";
-import { useUserId } from "@/shared/lib/hooks/useUserId";
 import { WeekBoard } from "@/widgets/week/WeekBoard";
 import { Button } from "@/components/ui/button";
 import { CalendarDays } from "lucide-react";
+import { QueryErrorState } from "@/shared/ui/QueryErrorState";
 import { useConfirm } from "@/shared/ui/ConfirmDialog";
 
 function WeekPageEmpty() {
@@ -36,7 +36,6 @@ function WeekPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const weekId = searchParams?.get("weekId") ?? "";
-  const userId = useUserId();
   const confirm = useConfirm();
 
   const { categories } = useCategoriesWidget();
@@ -46,6 +45,8 @@ function WeekPageContent() {
     tasks,
     archivedTasks,
     isLoading,
+    error,
+    refetch,
     taskForm,
     setTaskForm,
     isModalOpen,
@@ -117,6 +118,15 @@ function WeekPageContent() {
     return <WeekSkeleton />;
   }
 
+  if (error) {
+    return (
+      <QueryErrorState
+        message="Не удалось загрузить неделю"
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
   if (!weekPlan) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center gap-4">
@@ -141,7 +151,6 @@ function WeekPageContent() {
       <div className="flex flex-1 min-h-0 overflow-hidden pt-[57px]">
         <aside className="w-[300px] flex-shrink-0 min-h-0 flex flex-col border-r border-black/8 dark:border-white/6 bg-background/50">
           <LeftSidePage
-            userId={userId}
             weekId={weekId}
             weekStart={weekPlan.startDate}
             tasks={tasks}

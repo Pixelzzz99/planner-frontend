@@ -13,7 +13,6 @@ import { useRecurringTasks } from "@/entities/recurring-task/hooks/useRecurringT
 import { useMemo } from "react";
 
 interface LeftSidePageProps {
-  userId: string;
   weekId: string;
   weekStart?: string;
   tasks?: Task[];

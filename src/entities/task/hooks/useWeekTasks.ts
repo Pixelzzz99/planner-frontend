@@ -10,8 +10,8 @@ import { toast } from "sonner";
 
 export const useWeekTasks = (weekId: string) => {
   const queryClient = useQueryClient();
-  const { data: weekPlan, isLoading: isWeekLoading } = useWeekPlan(weekId);
-  const { data: archivedTasks, isLoading: isArchivedLoading } =
+  const { data: weekPlan, isLoading: isWeekLoading, error: weekError, refetch: refetchWeek } = useWeekPlan(weekId);
+  const { data: archivedTasks, isLoading: isArchivedLoading, error: archivedError } =
     useArchivedTasks();
 
   const {
@@ -63,8 +63,8 @@ export const useWeekTasks = (weekId: string) => {
     tasks: weekPlan?.tasks || [],
     archivedTasks,
     isLoading: isWeekLoading || isArchivedLoading,
-
-    // task form
+    error: weekError ?? archivedError ?? null,
+    refetch: refetchWeek,
     taskForm,
     setTaskForm,
     isModalOpen,

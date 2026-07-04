@@ -73,25 +73,16 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
-      if (!token) return session;
+      if (!token?.accessToken) return session;
 
-      try {
-        if (token.accessToken) {
-          await userApi.checkAuth(token.accessToken);
-
-          return {
-            ...session,
-            user: {
-              id: token.sub,
-              email: token.email,
-              accessToken: token.accessToken,
-            },
-          } as Session;
-        }
-        return session;
-      } catch {
-        return session;
-      }
+      return {
+        ...session,
+        user: {
+          id: token.sub,
+          email: token.email,
+          accessToken: token.accessToken,
+        },
+      } as Session;
     },
   },
   session: {

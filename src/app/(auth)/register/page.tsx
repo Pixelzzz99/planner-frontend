@@ -13,14 +13,16 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMismatch, setPasswordMismatch] = useState<string | null>(null);
   const { register, isLoading, error } = useRegister();
   const router = useRouter();
 
   const handleRegister = async () => {
     if (password !== confirmPassword) {
-      alert("Пароли не совпадают");
+      setPasswordMismatch("Пароли не совпадают");
       return;
     }
+    setPasswordMismatch(null);
 
     register(
       { email, password, name },
@@ -28,10 +30,7 @@ export default function RegisterPage() {
         onSuccess: () => {
           router.push("/login");
         },
-        onError: (error) => {
-          console.error("Registration error:", error);
-        },
-      }
+      },
     );
   };
 
@@ -44,9 +43,9 @@ export default function RegisterPage() {
         </h2>
 
         <div className="space-y-5">
-          {error && (
+          {(error || passwordMismatch) && (
             <div className="text-destructive text-sm bg-destructive/10 p-3 rounded-lg">
-              {error}
+              {passwordMismatch ?? error}
             </div>
           )}
 

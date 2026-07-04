@@ -120,15 +120,15 @@ export function HabitHeatmap({
         return (
           <div
             key={habit.id}
-            className="grid grid-cols-1 sm:grid-cols-[minmax(0,200px)_1fr] gap-3 sm:gap-4 items-center rounded-xl px-2 py-2 hover:bg-black/3 dark:hover:bg-white/3 transition-colors"
+            className="grid grid-cols-1 sm:grid-cols-[minmax(0,200px)_1fr] gap-3 sm:gap-4 items-start rounded-xl px-2 py-2 hover:bg-black/3 dark:hover:bg-white/3 transition-colors"
           >
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-start gap-2">
                 <span
-                  className="h-2.5 w-2.5 rounded-full shrink-0"
+                  className="h-2.5 w-2.5 rounded-full shrink-0 mt-1"
                   style={{ backgroundColor: color }}
                 />
-                <span className="text-sm font-medium truncate" title={habit.title}>
+                <span className="text-sm font-medium break-words leading-snug min-w-0">
                   {habit.title}
                 </span>
               </div>

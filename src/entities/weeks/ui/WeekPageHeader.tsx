@@ -5,6 +5,7 @@ import { WeekPlan } from "../model/types";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { formatDate } from "date-fns";
 import { signOut } from "next-auth/react";
+import { PomodoroTimer } from "@/widgets/week/PomodoroTimer";
 
 interface WeekPageHeaderProps {
   onBack: () => void;
@@ -14,28 +15,30 @@ interface WeekPageHeaderProps {
 export const WeekPageHeader = ({ onBack, weekPlan }: WeekPageHeaderProps) => {
   return (
     <div className="fixed top-0 left-0 right-0 z-20 glass bg-background/90 backdrop-blur-md border-b border-black/8 dark:border-white/6">
-      <div className="px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="px-4 sm:px-6 py-2.5 sm:py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Button
               variant="ghost"
-              className="h-9 w-9 rounded-full p-0 hover:bg-black/8 dark:hover:bg-white/10"
+              className="h-9 w-9 rounded-full p-0 shrink-0 hover:bg-black/8 dark:hover:bg-white/10"
               onClick={onBack}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
+            <div className="min-w-0 hidden sm:block">
               <p className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase">
                 Неделя
               </p>
-              <h1 className="text-lg font-bold gradient-text leading-tight">
+              <h1 className="text-lg font-bold gradient-text leading-tight truncate">
                 {weekPlan?.startDate &&
                   `${formatDate(weekPlan.startDate, "dd.MM")} — ${formatDate(weekPlan.endDate, "dd.MM.yyyy")}`}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <PomodoroTimer />
+
+          <div className="flex items-center gap-2 shrink-0">
             <ThemeToggle />
             <Button
               variant="ghost"
