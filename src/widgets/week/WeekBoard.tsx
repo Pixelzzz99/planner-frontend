@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   DndContext,
@@ -11,22 +11,25 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverEvent,
+  closestCorners,
   pointerWithin,
-  closestCenter,
+  rectIntersection,
+  getFirstCollision,
   CollisionDetection,
+  MeasuringStrategy,
 } from "@dnd-kit/core";
 import { DAYS } from "@/shared/constants/days";
 import { DayColumn } from "@/entities/task/ui/DayColumn";
 import { TaskArchive } from "@/entities/task/ui/TaskArchive";
 import { Task } from "@/entities/task";
 import { TaskCard } from "@/entities/task/ui/TaskCard";
-
-type DropLine = {
-  targetId: string | null;
-  position: "before" | "after" | null;
-};
-
-const EMPTY_DROP_LINE: DropLine = { targetId: null, position: null };
+import {
+  buildContainerItems,
+  ContainerItems,
+  hasPositionChanged,
+  moveOnDragOver,
+  resolveDropCommit,
+} from "@/entities/task/lib/boardDnD";
 
 interface WeekBoardProps {
   tasks: Task[];
@@ -58,268 +61,192 @@ export const WeekBoard = memo(function WeekBoard({
   handleDeleteTask,
   commitTaskPosition,
 }: WeekBoardProps) {
-  const tasksByDay = useMemo(() => {
-    const grouped: { [dayId: number]: Task[] } = {};
-    for (const day of DAYS) {
-      grouped[day.id] = tasks.filter((task) => task.day === day.id);
-    }
-    return grouped;
-  }, [tasks]);
+  const dayIds = useMemo(() => DAYS.map((d) => d.id), []);
+
+  const taskMap = useMemo(() => {
+    const map = new Map<string, Task>();
+    for (const task of tasks) map.set(task.id, task);
+    for (const task of archivedTasks) map.set(task.id, task);
+    return map;
+  }, [tasks, archivedTasks]);
+
+  const baseItems = useMemo(
+    () => buildContainerItems(tasks, archivedTasks, dayIds),
+    [tasks, archivedTasks, dayIds],
+  );
+
+  const [dragItems, setDragItems] = useState<ContainerItems | null>(null);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  const dragItemsRef = useRef<ContainerItems | null>(null);
+  const initialItemsRef = useRef<ContainerItems | null>(null);
+
+  const containerItems = dragItems ?? baseItems;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+      activationConstraint: { distance: 5 },
     }),
   );
 
-  const collisionDetection: CollisionDetection = (args) => {
-    const archiveHits = pointerWithin({
-      ...args,
-      droppableContainers: args.droppableContainers.filter(
-        (c) => c.data.current?.type === "archive",
-      ),
-    });
-    if (archiveHits.length > 0) return archiveHits;
-
-    const columnHits = pointerWithin({
-      ...args,
-      droppableContainers: args.droppableContainers.filter(
-        (c) => c.data.current?.type === "day-column",
-      ),
-    });
-    if (columnHits.length === 0) return [];
-
-    const columnId = String(columnHits[0].id);
-    const tasksInColumn = args.droppableContainers.filter(
-      (c) =>
-        c.data.current?.type === "Task" &&
-        c.data.current?.container === columnId,
-    );
-
-    if (tasksInColumn.length > 0) {
-      const taskHits = closestCenter({
+  const collisionDetection = useCallback<CollisionDetection>(
+    (args) => {
+      const archiveHits = pointerWithin({
         ...args,
-        droppableContainers: tasksInColumn,
+        droppableContainers: args.droppableContainers.filter(
+          (c) => c.data.current?.type === "archive",
+        ),
       });
-      if (taskHits.length > 0) return taskHits;
+      if (archiveHits.length > 0) return archiveHits;
+
+      const pointerHits = pointerWithin(args);
+      const intersections =
+        pointerHits.length > 0 ? pointerHits : rectIntersection(args);
+      const overId = getFirstCollision(intersections, "id");
+
+      if (overId == null) return [];
+
+      if (overId in containerItems) {
+        const idsInColumn = containerItems[String(overId)];
+        if (idsInColumn.length > 0) {
+          const idSet = new Set(idsInColumn);
+          const taskContainers = args.droppableContainers.filter((c) =>
+            idSet.has(String(c.id)),
+          );
+          if (taskContainers.length > 0) {
+            return closestCorners({ ...args, droppableContainers: taskContainers });
+          }
+        }
+      }
+
+      return intersections;
+    },
+    [containerItems],
+  );
+
+  const tasksByDay = useMemo(() => {
+    const grouped: Record<number, Task[]> = {};
+    for (const day of DAYS) {
+      const ids = containerItems[String(day.id)] ?? [];
+      grouped[day.id] = ids
+        .map((id) => {
+          const task = taskMap.get(id);
+          if (!task) return null;
+          return dragItems ? { ...task, day: day.id } : task;
+        })
+        .filter((t): t is Task => t !== null);
     }
+    return grouped;
+  }, [containerItems, taskMap, dragItems]);
 
-    return columnHits;
-  };
-
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [overContainerId, setOverContainerId] = useState<string | null>(null);
-  const [dropLine, setDropLine] = useState<DropLine>(EMPTY_DROP_LINE);
-  const dropLineRef = useRef<DropLine>(EMPTY_DROP_LINE);
-
-  const updateDropLine = (next: DropLine) => {
-    const current = dropLineRef.current;
-    if (
-      current.targetId === next.targetId &&
-      current.position === next.position
-    ) {
-      return;
-    }
-    dropLineRef.current = next;
-    setDropLine(next);
-  };
-
-  const resetIndicators = () => {
+  const resetDrag = () => {
     setActiveTask(null);
-    setOverContainerId(null);
-    updateDropLine(EMPTY_DROP_LINE);
+    setDragItems(null);
+    dragItemsRef.current = null;
+    initialItemsRef.current = null;
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const task = event.active.data.current?.task as Task;
-    if (task) {
-      setActiveTask(task);
-      setOverContainerId(String(task.day));
-    }
+    const task = event.active.data.current?.task as Task | undefined;
+    if (!task) return;
+
+    const items = buildContainerItems(tasks, archivedTasks, dayIds);
+    initialItemsRef.current = items;
+    dragItemsRef.current = items;
+    setDragItems(items);
+    setActiveTask(task);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { over, active } = event;
-    if (!over) {
-      updateDropLine(EMPTY_DROP_LINE);
-      return;
-    }
+    const { active, over } = event;
+    if (!over) return;
 
-    const overData = over.data.current;
-    const overType = overData?.type;
-    const activeContainer = active.data.current?.container as string | undefined;
+    setDragItems((current) => {
+      const base = current ?? dragItemsRef.current;
+      if (!base) return current;
 
-    if (overType === "Task") {
-      const overTask = overData!.task as Task;
-      const overContainer = overData!.container as string;
-      setOverContainerId(overContainer);
+      const next = moveOnDragOver(base, active, over);
+      if (!next) return current;
 
-      if (overTask.id === active.id) {
-        updateDropLine(EMPTY_DROP_LINE);
-        return;
-      }
-
-      // Same column: sortable handles visual gap — skip custom drop line
-      if (activeContainer === overContainer) {
-        updateDropLine(EMPTY_DROP_LINE);
-        return;
-      }
-
-      const activeRect = active.rect.current.translated;
-      const activeCenterY = activeRect
-        ? activeRect.top + activeRect.height / 2
-        : null;
-      const overCenterY = over.rect.top + over.rect.height / 2;
-      const isBefore = activeCenterY !== null && activeCenterY < overCenterY;
-
-      updateDropLine({
-        targetId: overTask.id,
-        position: isBefore ? "before" : "after",
-      });
-    } else if (overType === "day-column") {
-      setOverContainerId(overData?.container ?? null);
-      if (activeContainer === overData?.container) {
-        updateDropLine(EMPTY_DROP_LINE);
-        return;
-      }
-      updateDropLine({
-        targetId: overData?.container ?? null,
-        position: "after",
-      });
-    } else {
-      updateDropLine(EMPTY_DROP_LINE);
-    }
-  };
-
-  const resolveBeforeAfterTaskId = (
-    overTask: Task,
-    activeId: string,
-  ): string | null => {
-    const dayTasks = (tasksByDay[overTask.day] || [])
-      .filter((t) => !t.isArchived && t.id !== activeId)
-      .sort((a, b) => a.position - b.position);
-    const idx = dayTasks.findIndex((t) => t.id === overTask.id);
-    return idx > 0 ? dayTasks[idx - 1].id : null;
-  };
-
-  const commitAndReset = (
-    taskId: string,
-    destinationDay: number,
-    afterTaskId?: string | null,
-    isArchive?: boolean,
-  ) => {
-    flushSync(() => {
-      commitTaskPosition(taskId, destinationDay, afterTaskId, isArchive);
+      dragItemsRef.current = next;
+      return next;
     });
-    resetIndicators();
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    const dragged = active.data.current?.task as Task | undefined;
 
-    if (!over) {
-      resetIndicators();
+    if (!over || !dragged) {
+      resetDrag();
       return;
     }
 
-    const dragged = active.data.current?.task as Task;
-    if (!dragged) {
-      resetIndicators();
-      return;
-    }
-
-    const overData = over.data.current;
-    const overType = overData?.type;
+    const overType = over.data.current?.type;
 
     if (overType === "archive") {
-      commitAndReset(dragged.id, dragged.day, undefined, true);
+      flushSync(() => {
+        commitTaskPosition(dragged.id, dragged.day, undefined, true);
+      });
+      resetDrag();
       return;
     }
 
-    if (dragged.isArchived && overType === "day-column") {
-      const targetDay = parseInt(overData!.container as string);
-      if (!isNaN(targetDay)) commitAndReset(dragged.id, targetDay);
+    const finalItems = dragItemsRef.current ?? baseItems;
+    const initialItems = initialItemsRef.current ?? baseItems;
+
+    if (!hasPositionChanged(initialItems, finalItems, dragged.id)) {
+      resetDrag();
       return;
     }
 
-    if (overType === "Task") {
-      const overTask = overData!.task as Task;
-      if (overTask.id === dragged.id) {
-        resetIndicators();
-        return;
-      }
-
-      const ghostRect = active.rect.current.translated;
-      const ghostCenterY = ghostRect
-        ? ghostRect.top + ghostRect.height / 2
-        : null;
-      const overCenterY = over.rect.top + over.rect.height / 2;
-      const isBefore = ghostCenterY !== null && ghostCenterY < overCenterY;
-
-      const afterTaskId = isBefore
-        ? resolveBeforeAfterTaskId(overTask, dragged.id)
-        : overTask.id;
-
-      commitAndReset(dragged.id, overTask.day, afterTaskId);
+    const drop = resolveDropCommit(finalItems, dragged.id);
+    if (!drop || drop.isArchive) {
+      resetDrag();
       return;
     }
 
-    if (overType === "day-column") {
-      const targetDay = parseInt(overData!.container as string);
-      if (!isNaN(targetDay)) {
-        commitAndReset(dragged.id, targetDay, undefined);
-      } else {
-        resetIndicators();
-      }
-      return;
-    }
-
-    resetIndicators();
+    flushSync(() => {
+      commitTaskPosition(
+        dragged.id,
+        drop.day,
+        drop.afterTaskId,
+        false,
+      );
+    });
+    resetDrag();
   };
 
-  const isIntraDayDrag =
-    !!activeTask &&
-    !activeTask.isArchived &&
-    overContainerId === String(activeTask.day);
+  const handleDragCancel = () => {
+    resetDrag();
+  };
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={collisionDetection}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div
         ref={scrollBoardRef}
         className="flex-1 overflow-x-auto overflow-y-auto p-5 pb-6"
       >
         <div className="flex gap-4 items-start h-full min-h-0 w-max">
-          {DAYS.map((day) => {
-            const columnDropLine =
-              dropLine.targetId === String(day.id) ||
-              (tasksByDay[day.id] || []).some((t) => t.id === dropLine.targetId)
-                ? dropLine
-                : EMPTY_DROP_LINE;
-
-            return (
-              <DayColumn
-                key={day.id}
-                day={{ ...day, tasks: tasksByDay[day.id] || [] }}
-                openAddTask={openAddTask}
-                openEditTask={openEditTask}
-                handleDeleteTask={handleDeleteTask}
-                dropLine={columnDropLine}
-                nativeSortableDrag={
-                  isIntraDayDrag && String(day.id) === String(activeTask?.day)
-                }
-                isCurrentDay={day.id === focusDayId}
-                scrollToRef={
-                  day.id === focusDayId ? currentDayRef : undefined
-                }
-              />
-            );
-          })}
+          {DAYS.map((day) => (
+            <DayColumn
+              key={day.id}
+              day={{ ...day, tasks: tasksByDay[day.id] || [] }}
+              openAddTask={openAddTask}
+              openEditTask={openEditTask}
+              handleDeleteTask={handleDeleteTask}
+              isCurrentDay={day.id === focusDayId}
+              scrollToRef={day.id === focusDayId ? currentDayRef : undefined}
+            />
+          ))}
         </div>
       </div>
 
@@ -335,12 +262,13 @@ export const WeekBoard = memo(function WeekBoard({
       </div>
 
       <DragOverlay dropAnimation={null}>
-        {activeTask && !isIntraDayDrag ? (
+        {activeTask ? (
           <TaskCard
             task={activeTask}
             containerId="-1"
             onEdit={() => {}}
             onDelete={() => {}}
+            isOverlay
           />
         ) : null}
       </DragOverlay>

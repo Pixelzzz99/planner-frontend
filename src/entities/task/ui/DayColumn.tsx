@@ -11,8 +11,6 @@ interface DayColumnProps {
   openAddTask: (day: number) => void;
   openEditTask: (task: Task) => void;
   handleDeleteTask: (taskId: string) => void;
-  dropLine: { targetId: string | null; position: "before" | "after" | null };
-  nativeSortableDrag?: boolean;
   isCurrentDay?: boolean;
   scrollToRef?: React.RefObject<HTMLDivElement | null>;
 }
@@ -36,7 +34,6 @@ function getProductivityStyle(pct: number, isDark: boolean): CSSProperties {
       boxShadow: "0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)",
     };
   }
-  // light mode
   if (pct >= 100) return {
     background: "linear-gradient(160deg, #D1FAE5 0%, #A7F3D0 100%)",
     boxShadow: "0 0 20px rgba(16,185,129,0.18)",
@@ -67,8 +64,6 @@ export const DayColumn = memo(function DayColumn({
   openAddTask,
   openEditTask,
   handleDeleteTask,
-  dropLine,
-  nativeSortableDrag = false,
   isCurrentDay,
   scrollToRef,
 }: DayColumnProps) {
@@ -80,20 +75,19 @@ export const DayColumn = memo(function DayColumn({
   const internalRef = useRef<HTMLDivElement>(null);
 
   const sortedTasks = useMemo(
-    () => [...day.tasks].filter((t) => !t.isArchived).sort((a, b) => a.position - b.position),
-    [day.tasks]
+    () => [...day.tasks].filter((t) => !t.isArchived),
+    [day.tasks],
   );
 
   const completedCount = useMemo(
     () => sortedTasks.filter((t) => t.status === "COMPLETED").length,
-    [sortedTasks]
+    [sortedTasks],
   );
 
   const totalCount = sortedTasks.length;
   const productivityPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Detect dark mode via CSS
-  const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
+  const isDark = typeof globalThis.window !== "undefined" && document.documentElement.classList.contains("dark");
   const productivityStyle = getProductivityStyle(productivityPct, isDark);
   const progressColor = getProgressColor(productivityPct);
 
@@ -108,12 +102,11 @@ export const DayColumn = memo(function DayColumn({
     ? { ...productivityStyle, boxShadow: "0 0 0 2px #8B5CF6, 0 4px 20px rgba(139,92,246,0.25)" }
     : productivityStyle;
 
-  // Merge the droppable ref and the scroll-to ref
   const mergedRef = (node: HTMLDivElement | null) => {
     setNodeRef(node);
-    (internalRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    internalRef.current = node;
     if (scrollToRef) {
-      (scrollToRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      scrollToRef.current = node;
     }
   };
 
@@ -121,10 +114,9 @@ export const DayColumn = memo(function DayColumn({
     <div
       ref={mergedRef}
       style={columnStyle}
-      className="flex-shrink-0 w-[240px] rounded-2xl flex flex-col transition-all duration-500"
+      className="flex-shrink-0 w-[240px] rounded-2xl flex flex-col"
       data-container={day.id}
     >
-      {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-black/8 dark:border-white/8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -142,10 +134,9 @@ export const DayColumn = memo(function DayColumn({
           </span>
         </div>
 
-        {/* Mini progress bar */}
         <div className="mt-2.5 h-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-700"
+            className="h-full rounded-full transition-[width] duration-500"
             style={{
               width: `${productivityPct}%`,
               backgroundColor: progressColor,
@@ -155,7 +146,6 @@ export const DayColumn = memo(function DayColumn({
         </div>
       </div>
 
-      {/* Tasks */}
       <div className="p-2.5 flex-1 min-h-[120px] flex flex-col gap-1.5">
         <SortableContext
           id={String(day.id)}
@@ -163,50 +153,29 @@ export const DayColumn = memo(function DayColumn({
           strategy={verticalListSortingStrategy}
         >
           {sortedTasks.map((task) => (
-            <div key={task.id} className="relative">
-              {!nativeSortableDrag &&
-                dropLine.targetId === task.id &&
-                dropLine.position === "before" && (
-                <div className="absolute -top-1.5 left-0 right-0 flex items-center z-10 pointer-events-none">
-                  <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full" />
-                  <div className="absolute h-2.5 w-2.5 bg-primary rounded-full left-1/2 -translate-x-1/2 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
-                </div>
-              )}
-
-              <TaskCard
-                task={task}
-                containerId={String(day.id)}
-                onEdit={openEditTask}
-                onDelete={handleDeleteTask}
-                useNativeSortableDrag={nativeSortableDrag}
-              />
-
-              {!nativeSortableDrag &&
-                dropLine.targetId === task.id &&
-                dropLine.position === "after" && (
-                <div className="absolute -bottom-1.5 left-0 right-0 flex items-center z-10 pointer-events-none">
-                  <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full" />
-                  <div className="absolute h-2.5 w-2.5 bg-primary rounded-full left-1/2 -translate-x-1/2 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
-                </div>
-              )}
-            </div>
+            <TaskCard
+              key={task.id}
+              task={task}
+              containerId={String(day.id)}
+              onEdit={openEditTask}
+              onDelete={handleDeleteTask}
+            />
           ))}
         </SortableContext>
 
-        {dropLine.targetId === String(day.id) && (
-          <div className="flex-1 min-h-[60px] rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center">
-            <span className="text-xs text-primary/60">Перетащите сюда</span>
-          </div>
-        )}
-
-        {totalCount === 0 && dropLine.targetId !== String(day.id) && (
-          <div className="flex-1 min-h-[60px] flex items-center justify-center">
-            <span className="text-xs text-muted-foreground/40 text-center">Нет задач</span>
+        {totalCount === 0 && (
+          <div
+            className={`flex-1 min-h-[60px] flex items-center justify-center rounded-xl transition-colors ${
+              isOver ? "bg-primary/5 border border-dashed border-primary/30" : ""
+            }`}
+          >
+            <span className="text-xs text-muted-foreground/40 text-center">
+              {isOver ? "Отпустите здесь" : "Нет задач"}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Footer */}
       <div className="px-2.5 pb-2.5">
         <Button
           variant="ghost"

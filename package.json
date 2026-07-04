@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --hostname :: --port ${PORT-8080}",
     "lint": "next lint",
-    "test": "tsx --test src/entities/task/hooks/useMoveQueue.test.ts src/entities/task/lib/computeFractionalPosition.test.ts"
+    "test": "tsx --test src/entities/task/hooks/useMoveQueue.test.ts src/entities/task/lib/computeFractionalPosition.test.ts src/entities/task/lib/boardDnD.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
