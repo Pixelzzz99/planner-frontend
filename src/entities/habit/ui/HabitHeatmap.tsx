@@ -17,13 +17,6 @@ const LEVELS = [
   "opacity-100",
 ];
 
-function getLevel(count: number): number {
-  if (count === 0) return 0;
-  if (count < 5) return 1;
-  if (count < 15) return 2;
-  return 3;
-}
-
 interface HabitHeatmapProps {
   year: number;
   habits: HabitHeatmapEntry[];

@@ -17,6 +17,7 @@ interface TaskCategoriesProps {
   onEditCategory: (id: string, changes: { name?: string; plannedTime?: number }) => void;
   onDeleteCategory: (id: string) => void;
   isLoading?: boolean;
+  embedded?: boolean;
 }
 
 export function TaskCategories({
@@ -26,6 +27,7 @@ export function TaskCategories({
   onEditCategory,
   onDeleteCategory,
   isLoading,
+  embedded = false,
 }: TaskCategoriesProps) {
   const confirm = useConfirm();
   const sortedCategories = useMemo(
@@ -44,30 +46,23 @@ export function TaskCategories({
     return map;
   }, [categories, tasks]);
 
-  return (
-    <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-accent/15 flex items-center justify-center">
-              <Layers className="h-4 w-4 text-accent" />
-            </div>
-            <span className="font-semibold text-sm text-foreground">Категории</span>
-          </div>
+  const list = (
+    <>
+      {embedded && (
+        <div className="px-3 pt-2 pb-1 flex justify-end">
           <Button
             size="sm"
             variant="ghost"
             onClick={onAddCategory}
             disabled={isLoading}
-            className="h-7 w-7 p-0 rounded-lg hover:bg-primary/15 hover:text-primary"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus size={16} />}
+            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+            Добавить
           </Button>
         </div>
-      </div>
+      )}
 
-      {/* List */}
       <div className="px-3 py-2.5 space-y-1">
         {sortedCategories.length === 0 ? (
           <div className="py-6 text-center text-muted-foreground/50 text-xs">
@@ -158,8 +153,7 @@ export function TaskCategories({
         )}
       </div>
 
-      {/* Add button at bottom if there are categories */}
-      {sortedCategories.length > 0 && (
+      {sortedCategories.length > 0 && !embedded && (
         <div className="px-3 pb-3">
           <Button
             variant="ghost"
@@ -172,6 +166,33 @@ export function TaskCategories({
           </Button>
         </div>
       )}
+    </>
+  );
+
+  if (embedded) return list;
+
+  return (
+    <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
+      <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-accent/15 flex items-center justify-center">
+              <Layers className="h-4 w-4 text-accent" />
+            </div>
+            <span className="font-semibold text-sm text-foreground">Категории</span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onAddCategory}
+            disabled={isLoading}
+            className="h-7 w-7 p-0 rounded-lg hover:bg-primary/15 hover:text-primary"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus size={16} />}
+          </Button>
+        </div>
+      </div>
+      {list}
     </div>
   );
 }

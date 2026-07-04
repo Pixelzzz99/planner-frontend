@@ -138,16 +138,14 @@ function WeekPageContent() {
         onBack={() => router.push("/dashboard/year")}
       />
 
-      <div className="flex flex-1 overflow-hidden pt-[57px]">
-        <aside className="w-[300px] flex-shrink-0 overflow-y-auto border-r border-black/8 dark:border-white/6 bg-background/50">
-          <div className="p-4 space-y-4">
-            <LeftSidePage
-              userId={userId}
-              weekId={weekId}
-              weekStart={weekPlan.startDate}
-              tasks={tasks}
-            />
-          </div>
+      <div className="flex flex-1 min-h-0 overflow-hidden pt-[57px]">
+        <aside className="w-[300px] flex-shrink-0 min-h-0 flex flex-col border-r border-black/8 dark:border-white/6 bg-background/50">
+          <LeftSidePage
+            userId={userId}
+            weekId={weekId}
+            weekStart={weekPlan.startDate}
+            tasks={tasks}
+          />
         </aside>
 
         <main className="flex-1 flex flex-col overflow-hidden">

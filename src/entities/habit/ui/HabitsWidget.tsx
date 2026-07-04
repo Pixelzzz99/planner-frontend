@@ -20,9 +20,10 @@ import { cn } from "@/lib/utils";
 
 interface HabitsWidgetProps {
   weekStart?: string;
+  embedded?: boolean;
 }
 
-export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
+export function HabitsWidget({ weekStart, embedded = false }: HabitsWidgetProps) {
   const {
     habits,
     weekDates,
@@ -61,51 +62,70 @@ export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
 
   if (!weekStart) return null;
 
+  const habitsContent = (
+    <div className="p-2 space-y-2">
+      {isLoading ? (
+        <div className="py-8 flex justify-center">
+          <div className="w-5 h-5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+        </div>
+      ) : habits.length === 0 ? (
+        <div className="py-8 text-center text-sm text-muted-foreground/50">
+          Добавьте первую привычку
+        </div>
+      ) : (
+        habits.map((habit) => (
+          <HabitRow
+            key={habit.id}
+            habit={habit}
+            weekDates={weekDates}
+            onToggle={(habitId, date) =>
+              toggleHabitLog({ habitId, date })
+            }
+            onEdit={setEditingHabit}
+            onDelete={handleDeleteHabit}
+          />
+        ))
+      )}
+    </div>
+  );
+
   return (
     <>
-      <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
-        <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-              <Target className="h-4 w-4 text-emerald-500" />
-            </div>
-            <span className="font-semibold text-sm">Привычки</span>
+      {embedded ? (
+        <>
+          <div className="px-3 pt-3 pb-1 flex justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0 rounded-lg"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Plus size={16} />
+            </Button>
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 rounded-lg"
-            onClick={() => setIsDialogOpen(true)}
-          >
-            <Plus size={16} />
-          </Button>
-        </div>
-
-        <div className="p-2 space-y-2 max-h-[280px] overflow-y-auto">
-          {isLoading ? (
-            <div className="py-8 flex justify-center">
-              <div className="w-5 h-5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+          {habitsContent}
+        </>
+      ) : (
+        <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
+          <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                <Target className="h-4 w-4 text-emerald-500" />
+              </div>
+              <span className="font-semibold text-sm">Привычки</span>
             </div>
-          ) : habits.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground/50">
-              Добавьте первую привычку
-            </div>
-          ) : (
-            habits.map((habit) => (
-              <HabitRow
-                key={habit.id}
-                habit={habit}
-                weekDates={weekDates}
-                onToggle={(habitId, date) =>
-                  toggleHabitLog({ habitId, date })
-                }
-                onEdit={setEditingHabit}
-                onDelete={handleDeleteHabit}
-              />
-            ))
-          )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0 rounded-lg"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Plus size={16} />
+            </Button>
+          </div>
+          {habitsContent}
         </div>
-      </div>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">

@@ -26,6 +26,7 @@ import { useConfirm } from "@/shared/ui/ConfirmDialog";
 
 interface WeekFocusProps {
   weekPlanId: string;
+  embedded?: boolean;
 }
 
 const STATUS_ICON: Record<FocusStatus, React.ReactNode> = {
@@ -47,7 +48,7 @@ const FILTER_TABS: { label: string; value: FocusStatus | null }[] = [
   { label: "Отменено", value: FocusStatus.CANCELED },
 ];
 
-export function WeekFocus({ weekPlanId }: WeekFocusProps) {
+export function WeekFocus({ weekPlanId, embedded = false }: WeekFocusProps) {
   const {
     focuses,
     isLoading,
@@ -115,22 +116,29 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
   };
 
   if (isLoading) {
-    return <Skeleton className="w-full h-[180px] rounded-2xl" />;
+    return <Skeleton className={embedded ? "w-full h-24" : "w-full h-[180px] rounded-2xl"} />;
   }
 
-  return (
-    <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-primary/15 flex items-center justify-center">
-              <Target className="h-4 w-4 text-primary" />
+  const content = (
+    <>
+      <div className={cn("px-3", embedded ? "pt-3 pb-2" : "px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6")}>
+        <div className="flex items-center justify-between mb-2">
+          {embedded ? (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {completedCount}/{total} выполнено
+            </span>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-primary/15 flex items-center justify-center">
+                <Target className="h-4 w-4 text-primary" />
+              </div>
+              <span className="font-semibold text-sm text-foreground">Фокусы недели</span>
             </div>
-            <span className="font-semibold text-sm text-foreground">Фокусы недели</span>
-          </div>
+          )}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{completedCount}/{total}</span>
+            {!embedded && (
+              <span className="text-xs text-muted-foreground">{completedCount}/{total}</span>
+            )}
             <Button
               size="sm"
               variant="ghost"
@@ -142,7 +150,6 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
           </div>
         </div>
 
-        {/* Progress bar */}
         {total > 0 && (
           <div className="h-1 rounded-full bg-black/8 dark:bg-white/8 overflow-hidden">
             <div
@@ -155,8 +162,7 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
           </div>
         )}
 
-        {/* Filter tabs */}
-        <div className="flex gap-1 mt-3 flex-wrap">
+        <div className="flex gap-1 mt-2 flex-wrap">
           {FILTER_TABS.map((tab) => (
             <button
               key={String(tab.value)}
@@ -174,8 +180,7 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
         </div>
       </div>
 
-      {/* Focus list */}
-      <div className="px-3 py-2.5 space-y-1.5 max-h-[300px] overflow-y-auto">
+      <div className="px-3 py-2.5 space-y-1.5">
         <AnimatePresence mode="popLayout" initial={false}>
           {sortedFocuses.length === 0 && !isAdding ? (
             <motion.div
@@ -282,7 +287,6 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
         </AnimatePresence>
       </div>
 
-      {/* Bottom add button */}
       {(total > 0 || isAdding) && !isAdding && (
         <div className="px-3 pb-3">
           <Button
@@ -295,6 +299,14 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
           </Button>
         </div>
       )}
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
+      {content}
     </div>
   );
 }

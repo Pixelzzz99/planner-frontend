@@ -8,9 +8,13 @@ import { DAYS } from "@/shared/constants/days";
 
 interface RecurringTasksWidgetProps {
   weekId: string;
+  embedded?: boolean;
 }
 
-export function RecurringTasksWidget({ weekId }: RecurringTasksWidgetProps) {
+export function RecurringTasksWidget({
+  weekId,
+  embedded = false,
+}: RecurringTasksWidgetProps) {
   const {
     templates,
     isLoading,
@@ -23,19 +27,21 @@ export function RecurringTasksWidget({ weekId }: RecurringTasksWidgetProps) {
   const dayLabel = (day: number) =>
     DAYS.find((d) => d.id === day)?.label.slice(0, 2) ?? String(day);
 
-  return (
-    <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
-      <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
-            <Repeat className="h-4 w-4 text-violet-500" />
+  const content = (
+    <>
+      <div className={`px-3 ${embedded ? "pt-3 pb-2" : "px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6"} flex items-center justify-between gap-2`}>
+        {!embedded && (
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
+              <Repeat className="h-4 w-4 text-violet-500" />
+            </div>
+            <span className="font-semibold text-sm">Повторяющиеся</span>
           </div>
-          <span className="font-semibold text-sm">Повторяющиеся</span>
-        </div>
+        )}
         <Button
           size="sm"
           variant="outline"
-          className="h-7 text-[10px] px-2"
+          className={`h-7 text-[10px] px-2 ${embedded ? "ml-auto" : ""}`}
           disabled={isApplying || templates.length === 0}
           onClick={() => applyToWeek()}
         >
@@ -43,7 +49,7 @@ export function RecurringTasksWidget({ weekId }: RecurringTasksWidgetProps) {
         </Button>
       </div>
 
-      <div className="p-2 space-y-1 max-h-[160px] overflow-y-auto">
+      <div className="p-2 space-y-1">
         {isLoading ? (
           <div className="py-6 flex justify-center">
             <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
@@ -82,6 +88,14 @@ export function RecurringTasksWidget({ weekId }: RecurringTasksWidgetProps) {
           ))
         )}
       </div>
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
+      {content}
     </div>
   );
 }
