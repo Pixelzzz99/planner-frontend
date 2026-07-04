@@ -150,11 +150,12 @@ export function TaskSheet({
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Timer className="h-3 w-3" />
-                Время (мин)
+                Длительность (минуты)
               </Label>
               <Input
                 type="number"
                 min={0}
+                step={5}
                 value={taskForm.duration || ""}
                 onChange={(e) =>
                   setTaskForm({
@@ -162,9 +163,12 @@ export function TaskSheet({
                     duration: e.target.value ? Number(e.target.value) : undefined,
                   })
                 }
-                placeholder="0"
+                placeholder="30"
                 className="h-10 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm"
               />
+              <p className="text-[10px] text-muted-foreground/70">
+                Указывайте в минутах: 60 = 1 час
+              </p>
             </div>
 
             <div className="space-y-1.5">

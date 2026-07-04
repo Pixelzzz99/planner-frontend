@@ -5,28 +5,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { categoryKeys } from "../model/keys";
 
-const updateCategoryCache = (
-  queryClient: ReturnType<typeof useQueryClient>,
-  categoryId: string,
-  timeChange: number,
-  field: "plannedTime" | "actualTime"
-) => {
-  const currentCategories =
-    queryClient.getQueryData<Category[]>(categoryKeys.lists()) || [];
-
-  const updatedCategories = currentCategories.map((cat) =>
-    cat.id === categoryId
-      ? { ...cat, [field]: Math.max(0, cat[field] + timeChange) }
-      : cat
-  );
-
-  queryClient.setQueryData(categoryKeys.lists(), updatedCategories);
-  queryClient.invalidateQueries({
-    queryKey: categoryKeys.lists(),
-    refetchType: "none",
-  });
-};
-
 export function useCategoriesWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
@@ -128,38 +106,6 @@ export function useCategoriesWidget() {
     },
   });
 
-  const updateCategoryTime = useCallback(
-    (categoryId: string, timeChange: number) => {
-      updateCategoryCache(queryClient, categoryId, timeChange, "plannedTime");
-
-      updateMutation.mutate({
-        id: categoryId,
-        changes: {
-          plannedTime:
-            (categories.find((c) => c.id === categoryId)?.plannedTime || 0) +
-            timeChange,
-        },
-      });
-    },
-    [queryClient, categories, updateMutation]
-  );
-
-  const updateCategoryActualTime = useCallback(
-    (categoryId: string, timeChange: number) => {
-      updateCategoryCache(queryClient, categoryId, timeChange, "actualTime");
-
-      updateMutation.mutate({
-        id: categoryId,
-        changes: {
-          actualTime:
-            (categories.find((c) => c.id === categoryId)?.actualTime || 0) +
-            timeChange,
-        },
-      });
-    },
-    [queryClient, categories, updateMutation]
-  );
-
   const handleAddCategory = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -192,7 +138,5 @@ export function useCategoriesWidget() {
     onAddCategory: handleAddCategory,
     onEditCategory: handleEditCategory,
     onDeleteCategory: handleDeleteCategory,
-    updateCategoryTime,
-    updateCategoryActualTime,
   };
 }

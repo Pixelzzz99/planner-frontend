@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Pencil, Trash2, Clock } from "lucide-react";
 import { Task } from "../models/task.model";
+import { formatDuration } from "@/shared/lib/formatDuration";
 import { CSSProperties, memo } from "react";
 
 interface TaskCardProps {
@@ -111,7 +112,7 @@ function TaskCardView({
             {task.duration > 0 && (
               <span className="text-[11px] text-muted-foreground flex items-center gap-1 ml-auto">
                 <Clock className="h-3 w-3" />
-                {task.duration}м
+                {formatDuration(task.duration)}
               </span>
             )}
           </div>

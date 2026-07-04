@@ -5,6 +5,7 @@ import { EditableText } from "@/shared/ui/EditableText";
 import { Trash2, Plus, Loader2, Layers } from "lucide-react";
 import { Category } from "../model/category.model";
 import { getCategoryColor } from "@/shared/lib/utils/color";
+import { formatDuration } from "@/shared/lib/formatDuration";
 import { useMemo } from "react";
 import { Task } from "@/entities/task";
 import { cn } from "@/lib/utils";
@@ -108,26 +109,29 @@ export function TaskCategories({
                         />
                       </div>
                       <span className={cn("text-[10px] tabular-nums", over ? "text-red-500" : "text-muted-foreground")}>
-                        {actual}/{planned}м
+                        {formatDuration(actual)}/{formatDuration(planned)}
                       </span>
                     </div>
                   )}
 
                   {planned === 0 && actual > 0 && (
                     <span className="text-[10px] text-muted-foreground/60 pl-1">
-                      {actual}м
+                      {formatDuration(actual)}
                     </span>
                   )}
                 </div>
 
-                {/* Planned time editable */}
-                <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Planned time editable (minutes) */}
+                <div
+                  className="flex-shrink-0 flex items-center gap-0.5"
+                  title="Плановое время в минутах"
+                >
                   <EditableText
                     text={`${cat.plannedTime || 0}`}
                     onSave={(v) => onEditCategory(cat.id, { plannedTime: Number(v) || 0 })}
-                    className="text-[10px] w-8 text-center text-muted-foreground hover:bg-black/8 dark:hover:bg-white/10 rounded px-0.5"
+                    className="text-[10px] w-10 text-center text-muted-foreground hover:bg-black/8 dark:hover:bg-white/10 rounded px-0.5"
                   />
-                  <span className="text-[10px] text-muted-foreground/50">м</span>
+                  <span className="text-[10px] text-muted-foreground/50">мин</span>
                 </div>
 
                 {/* Delete */}

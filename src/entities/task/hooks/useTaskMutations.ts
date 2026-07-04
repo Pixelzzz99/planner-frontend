@@ -9,7 +9,7 @@ import {
 import { CreateTaskDTO, UpdateTaskDTO, Task } from "../models/task.model";
 import { archivedTasksKeys } from "./useArchivedTasks";
 import { TaskState } from "../types/task-operations";
-import { useCategoriesWidget } from "@/entities/categories/hooks/use-categories";
+import { categoryKeys } from "@/entities/categories/model/keys";
 import { computeFractionalPosition } from "../lib/computeFractionalPosition";
 import { useMoveQueue } from "./useMoveQueue";
 import { useCallback, useRef } from "react";
@@ -24,13 +24,15 @@ const findTaskById = (tasks: Task[], id: string): Task | undefined =>
 
 export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   const queryClient = useQueryClient();
-  const { updateCategoryActualTime } = useCategoriesWidget();
 
   const { mutate: createTask } = useCreateTask();
   const { mutate: updateTask } = useUpdateTask();
   const { mutate: deleteTask } = useDeleteTask();
   const { mutateAsync: moveTaskAsync } = useMoveTask();
-  const { updateCategoryTime } = useCategoriesWidget();
+
+  const invalidateCategories = () => {
+    queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
+  };
 
   const weekIdRef = useRef(weekId);
   weekIdRef.current = weekId;
@@ -104,39 +106,27 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
           updateWeekTasks((tasks) =>
             tasks.map((t) => (t.id === tempId ? { ...t, id: response.id } : t))
           );
-          if (data.categoryId && data.duration) {
-            updateCategoryActualTime(data.categoryId, data.duration);
-          }
+          invalidateCategories();
         },
       }
     );
   };
 
   const updateExistingTask = (taskId: string, data: UpdateTaskDTO) => {
-    const oldTask = getTaskState().weekTasks.find((t) => t.id === taskId);
-
     updateWeekTasks((tasks) =>
       tasks.map((task) => (task.id === taskId ? { ...task, ...data } : task))
     );
 
-    updateTask({ taskId, weekId, data });
-
-    if (oldTask?.categoryId && data.duration !== undefined) {
-      const timeChange = data.duration - (oldTask.duration || 0);
-      updateCategoryActualTime(oldTask.categoryId, timeChange);
-    }
+    updateTask(
+      { taskId, weekId, data },
+      { onSuccess: () => invalidateCategories() },
+    );
   };
 
   const deleteExistingTask = (taskId: string) => {
-    const taskToDelete = getTaskState().weekTasks.find((t) => t.id === taskId);
-
-    if (taskToDelete?.categoryId && taskToDelete.duration) {
-      updateCategoryTime(taskToDelete.categoryId, -taskToDelete.duration);
-    }
-
     updateWeekTasks((tasks) => tasks.filter((task) => task.id !== taskId));
     updateArchivedTasks((tasks) => tasks.filter((task) => task.id !== taskId));
-    deleteTask({ taskId, weekId });
+    deleteTask({ taskId, weekId }, { onSuccess: () => invalidateCategories() });
   };
 
   const queueMoveTask = (
@@ -186,10 +176,6 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   const handleArchiveTask = (task: Task, taskId: string) => {
     if (task.isArchived) return;
 
-    if (task.categoryId && task.duration) {
-      updateCategoryActualTime(task.categoryId, -task.duration);
-    }
-
     updateWeekTasks((tasks) => tasks.filter((t) => t.id !== taskId));
     updateArchivedTasks((tasks) => {
       if (tasks.some((t) => t.id === taskId)) return tasks;
@@ -207,6 +193,7 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
         archiveReason: "Задача перемещена в архив",
       },
     });
+    invalidateCategories();
   };
 
   const handleUnarchiveTask = (
@@ -214,10 +201,6 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
     taskId: string,
     destinationDay: number
   ) => {
-    if (task.categoryId && task.duration) {
-      updateCategoryActualTime(task.categoryId, task.duration);
-    }
-
     updateArchivedTasks((tasks) => tasks.filter((t) => t.id !== taskId));
     updateWeekTasks((tasks) => {
       const others = tasks.filter((t) => t.id !== taskId);
@@ -228,6 +211,7 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
       return [...others, { ...task, isArchived: false, day: destinationDay, position: newPosition }]
         .sort((a, b) => a.day - b.day || a.position - b.position);
     });
+    invalidateCategories();
   };
 
   const handleMoveTask = (
