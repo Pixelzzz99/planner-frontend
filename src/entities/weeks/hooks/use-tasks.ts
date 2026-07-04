@@ -6,6 +6,7 @@ import {
   MoveTaskDto,
 } from "@/entities/task/models/task.model";
 import { weekKeys } from "./use-week";
+import { Task } from "@/entities/task/models/task.model";
 
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
@@ -13,8 +14,25 @@ export const useCreateTask = () => {
   return useMutation({
     mutationFn: ({ weekId, data }: { weekId: string; data: CreateTaskDTO }) =>
       taskApi.createTask(weekId, data),
-    onSuccess: (_, { weekId }) => {
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
+    onSuccess: (createdTask, { weekId }) => {
+      queryClient.setQueryData<{ tasks: Task[] }>(
+        weekKeys.plan(weekId),
+        (old) => {
+          if (!old) return old;
+          const withoutTemp = old.tasks.filter(
+            (t) => !String(t.id).startsWith("temp-"),
+          );
+          if (withoutTemp.some((t) => t.id === createdTask.id)) {
+            return {
+              ...old,
+              tasks: withoutTemp.map((t) =>
+                t.id === createdTask.id ? { ...t, ...createdTask } : t,
+              ),
+            };
+          }
+          return { ...old, tasks: [...withoutTemp, createdTask] };
+        },
+      );
     },
   });
 };
@@ -30,8 +48,19 @@ export const useUpdateTask = () => {
       data: UpdateTaskDTO;
       weekId: string;
     }) => taskApi.updateTask(taskId, data),
-    onSuccess: (_, { weekId }) => {
-      queryClient.invalidateQueries({ queryKey: weekKeys.plan(weekId) });
+    onSuccess: (updatedTask, { weekId }) => {
+      queryClient.setQueryData<{ tasks: Task[] }>(
+        weekKeys.plan(weekId),
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            tasks: old.tasks.map((t) =>
+              t.id === updatedTask.id ? { ...t, ...updatedTask } : t,
+            ),
+          };
+        },
+      );
     },
   });
 };
@@ -54,6 +83,20 @@ export const useMoveTask = () => {
       data: MoveTaskDto;
       weekId: string;
     }) => taskApi.moveTask(taskId, data),
+    onSuccess: (updatedTask, variables) => {
+      queryClient.setQueryData<{ tasks: Task[] }>(
+        weekKeys.plan(variables.weekId),
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            tasks: old.tasks.map((t) =>
+              t.id === updatedTask.id ? { ...t, ...updatedTask } : t,
+            ),
+          };
+        },
+      );
+    },
     onError: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: weekKeys.plan(variables.weekId),

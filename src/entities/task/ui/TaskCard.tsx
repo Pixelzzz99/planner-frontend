@@ -1,6 +1,6 @@
 "use client";
 
-import { useSortable } from "@dnd-kit/sortable";
+import { useSortable, defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Pencil, Trash2, Clock } from "lucide-react";
@@ -42,15 +42,14 @@ export const TaskCard = memo(function TaskCard({
   } = useSortable({
     id: task.id,
     data: { type: "Task", task, container: containerId },
+    animateLayoutChanges: (args) =>
+      args.isSorting || args.wasDragging ? false : defaultAnimateLayoutChanges(args),
   });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    // Always keep transition so other cards animate when we hover over them
-    transition: transition ?? "transform 200ms ease",
-    opacity: isDragging ? 0 : 1,
-    // Raise z-index while being moved so it renders above siblings
-    zIndex: isDragging ? 999 : undefined,
+    transition: isDragging ? transition : undefined,
+    opacity: isDragging ? 0.35 : 1,
   };
 
   const priority = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.LOW;

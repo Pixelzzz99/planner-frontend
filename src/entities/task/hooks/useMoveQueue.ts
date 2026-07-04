@@ -57,9 +57,11 @@ export function createMoveQueue(execute: MoveExecutor) {
 
 export function useMoveQueue(execute: MoveExecutor) {
   const queueRef = useRef<ReturnType<typeof createMoveQueue> | null>(null);
+  const executeRef = useRef(execute);
+  executeRef.current = execute;
 
   if (!queueRef.current) {
-    queueRef.current = createMoveQueue(execute);
+    queueRef.current = createMoveQueue((payload) => executeRef.current(payload));
   }
 
   const enqueue = useCallback((payload: MoveQueuePayload) => {

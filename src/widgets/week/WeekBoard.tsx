@@ -1,10 +1,10 @@
 "use client";
 
 import { memo, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   DndContext,
   DragOverlay,
-  defaultDropAnimation,
   PointerSensor,
   useSensor,
   useSensors,
@@ -182,6 +182,18 @@ export const WeekBoard = memo(function WeekBoard({
     return idx > 0 ? dayTasks[idx - 1].id : null;
   };
 
+  const commitAndReset = (
+    taskId: string,
+    destinationDay: number,
+    afterTaskId?: string | null,
+    isArchive?: boolean,
+  ) => {
+    flushSync(() => {
+      commitTaskPosition(taskId, destinationDay, afterTaskId, isArchive);
+    });
+    resetIndicators();
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -200,15 +212,13 @@ export const WeekBoard = memo(function WeekBoard({
     const overType = overData?.type;
 
     if (overType === "archive") {
-      commitTaskPosition(dragged.id, dragged.day, undefined, true);
-      resetIndicators();
+      commitAndReset(dragged.id, dragged.day, undefined, true);
       return;
     }
 
     if (dragged.isArchived && overType === "day-column") {
       const targetDay = parseInt(overData!.container as string);
-      if (!isNaN(targetDay)) commitTaskPosition(dragged.id, targetDay);
-      resetIndicators();
+      if (!isNaN(targetDay)) commitAndReset(dragged.id, targetDay);
       return;
     }
 
@@ -230,17 +240,17 @@ export const WeekBoard = memo(function WeekBoard({
         ? resolveBeforeAfterTaskId(overTask, dragged.id)
         : overTask.id;
 
-      commitTaskPosition(dragged.id, overTask.day, afterTaskId);
-      resetIndicators();
+      commitAndReset(dragged.id, overTask.day, afterTaskId);
       return;
     }
 
     if (overType === "day-column") {
       const targetDay = parseInt(overData!.container as string);
       if (!isNaN(targetDay)) {
-        commitTaskPosition(dragged.id, targetDay, undefined);
+        commitAndReset(dragged.id, targetDay, undefined);
+      } else {
+        resetIndicators();
       }
-      resetIndicators();
       return;
     }
 
@@ -296,7 +306,7 @@ export const WeekBoard = memo(function WeekBoard({
         </div>
       </div>
 
-      <DragOverlay dropAnimation={defaultDropAnimation}>
+      <DragOverlay dropAnimation={null}>
         {activeTask ? (
           <TaskCard
             task={activeTask}
