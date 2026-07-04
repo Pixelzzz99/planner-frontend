@@ -1,27 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { EditableText } from "@/shared/ui/EditableText";
-import { Trash2, Plus, Loader2 } from "lucide-react";
+import { Trash2, Plus, Loader2, Layers } from "lucide-react";
 import { Category } from "../model/category.model";
 import { getCategoryColor } from "@/shared/lib/utils/color";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useMemo } from "react";
 import { Task } from "@/entities/task";
+import { cn } from "@/lib/utils";
 
 interface TaskCategoriesProps {
   categories: Category[];
   tasks?: Task[];
   onAddCategory: () => void;
-  onEditCategory: (
-    id: string,
-    changes: { name?: string; plannedTime?: number }
-  ) => void;
+  onEditCategory: (id: string, changes: { name?: string; plannedTime?: number }) => void;
   onDeleteCategory: (id: string) => void;
   isLoading?: boolean;
 }
@@ -34,116 +24,141 @@ export function TaskCategories({
   onDeleteCategory,
   isLoading,
 }: TaskCategoriesProps) {
-  const sortedCategories = useMemo(() => {
-    return [...categories].sort(
-      (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)
-    );
-  }, [categories]);
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)),
+    [categories]
+  );
 
-  // Подсчитываем фактическое время (duration) по категориям из текущих задач недели
-  const categoriesActualTime = useMemo(() => {
-    const timeByCategory: Record<string, number> = {};
-
-    // Инициализируем все категории нулевым значением
-    categories.forEach((category) => {
-      timeByCategory[category.id] = 0;
-    });
-
-    // Суммируем duration задач по категориям
-    tasks.forEach((task) => {
-      if (task.categoryId && !task.isArchived) {
-        timeByCategory[task.categoryId] =
-          (timeByCategory[task.categoryId] || 0) + (task.duration || 0);
+  const actualTime = useMemo(() => {
+    const map: Record<string, number> = {};
+    categories.forEach((c) => (map[c.id] = 0));
+    tasks.forEach((t) => {
+      if (t.categoryId && !t.isArchived) {
+        map[t.categoryId] = (map[t.categoryId] || 0) + (t.duration || 0);
       }
     });
-
-    return timeByCategory;
+    return map;
   }, [categories, tasks]);
 
   return (
-    <div className="border border-border p-4 rounded-md shadow-sm bg-card">
-      <h2 className="font-semibold mb-4 text-xl text-foreground">
-        Категории задач
-      </h2>
-
-      <Button
-        variant="outline"
-        onClick={() => onAddCategory()}
-        className="flex items-center gap-2 w-full mb-4 hover:bg-accent"
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <Loader2 className="animate-spin" size={18} />
-        ) : (
-          <Plus size={18} />
-        )}
-        Добавить категорию
-      </Button>
-
-      {categories.length === 0 ? (
-        <div className="text-muted-foreground text-sm mt-3 text-center">
-          Категории отсутствуют
+    <div className="rounded-2xl glass border border-black/8 dark:border-white/8 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3 border-b border-black/6 dark:border-white/6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-accent/15 flex items-center justify-center">
+              <Layers className="h-4 w-4 text-accent" />
+            </div>
+            <span className="font-semibold text-sm text-foreground">Категории</span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onAddCategory}
+            disabled={isLoading}
+            className="h-7 w-7 p-0 rounded-lg hover:bg-primary/15 hover:text-primary"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus size={16} />}
+          </Button>
         </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40px]"></TableHead>
-              <TableHead>Название</TableHead>
-              <TableHead>Время (план/факт)</TableHead>
-              <TableHead className="w-[80px] text-center">Действия</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedCategories.map((category) => (
-              <TableRow key={category.id} className="group">
-                <TableCell>
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: getCategoryColor(category.id) }}
-                  />
-                </TableCell>
-                <TableCell>
+      </div>
+
+      {/* List */}
+      <div className="px-3 py-2.5 space-y-1">
+        {sortedCategories.length === 0 ? (
+          <div className="py-6 text-center text-muted-foreground/50 text-xs">
+            Нет категорий
+          </div>
+        ) : (
+          sortedCategories.map((cat) => {
+            const color = getCategoryColor(cat.id);
+            const planned = cat.plannedTime || 0;
+            const actual = actualTime[cat.id] || 0;
+            const pct = planned > 0 ? Math.min(100, Math.round((actual / planned) * 100)) : 0;
+            const over = actual > planned && planned > 0;
+
+            return (
+              <div
+                key={cat.id}
+                className="group flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              >
+                {/* Color dot */}
+                <div
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: color }}
+                />
+
+                {/* Name */}
+                <div className="flex-1 min-w-0">
                   <EditableText
-                    text={category.name}
-                    className="text-foreground text-md font-medium hover:bg-accent/50 px-2 py-1 rounded-md w-full"
-                    onSave={(newName) =>
-                      onEditCategory(category.id, { name: newName })
-                    }
+                    text={cat.name}
+                    onSave={(n) => onEditCategory(cat.id, { name: n })}
+                    className="text-xs font-medium text-foreground hover:bg-black/5 dark:hover:bg-white/8 px-1 py-0.5 rounded-md w-full"
                   />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 text-sm">
-                    <EditableText
-                      text={`${category.plannedTime || 0}`}
-                      className="hover:bg-accent/50 px-2 py-1 rounded-md w-12 text-center"
-                      onSave={(newTime) =>
-                        onEditCategory(category.id, {
-                          plannedTime: Number(newTime),
-                        })
-                      }
-                    />
-                    <span className="text-muted-foreground">/</span>
-                    <span className="text-muted-foreground w-12 text-center">
-                      {categoriesActualTime[category.id] || 0}
+
+                  {/* Progress bar */}
+                  {planned > 0 && (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <div className="h-1 flex-1 rounded-full bg-black/8 dark:bg-white/8 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: over ? "#EF4444" : color,
+                          }}
+                        />
+                      </div>
+                      <span className={cn("text-[10px] tabular-nums", over ? "text-red-500" : "text-muted-foreground")}>
+                        {actual}/{planned}м
+                      </span>
+                    </div>
+                  )}
+
+                  {planned === 0 && actual > 0 && (
+                    <span className="text-[10px] text-muted-foreground/60 pl-1">
+                      {actual}м
                     </span>
-                    <span className="text-muted-foreground">ч</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => onDeleteCategory(category.id)}
-                  >
-                    <Trash2 size={18} />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  )}
+                </div>
+
+                {/* Planned time editable */}
+                <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <EditableText
+                    text={`${cat.plannedTime || 0}`}
+                    onSave={(v) => onEditCategory(cat.id, { plannedTime: Number(v) || 0 })}
+                    className="text-[10px] w-8 text-center text-muted-foreground hover:bg-black/8 dark:hover:bg-white/10 rounded px-0.5"
+                  />
+                  <span className="text-[10px] text-muted-foreground/50">м</span>
+                </div>
+
+                {/* Delete */}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onDeleteCategory(cat.id)}
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/15 hover:text-destructive flex-shrink-0"
+                >
+                  <Trash2 size={11} />
+                </Button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add button at bottom if there are categories */}
+      {sortedCategories.length > 0 && (
+        <div className="px-3 pb-3">
+          <Button
+            variant="ghost"
+            className="w-full h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/8 rounded-xl"
+            onClick={onAddCategory}
+            disabled={isLoading}
+          >
+            <Plus className="h-3 w-3" />
+            Добавить категорию
+          </Button>
+        </div>
       )}
     </div>
   );

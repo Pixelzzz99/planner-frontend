@@ -11,12 +11,8 @@ import {
 } from "lucide-react";
 import { useWeekFocuses } from "../hooks/useWeekFocuses";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMemo, useState } from "react";
-import {
-  FocusStatus,
-  focusStatusLabels,
-  focusStatusColors,
-} from "../model/types";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { FocusStatus, focusStatusLabels } from "../model/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,9 +28,9 @@ interface WeekFocusProps {
 }
 
 const STATUS_ICON: Record<FocusStatus, React.ReactNode> = {
-  [FocusStatus.COMPLETED]:   <Check   size={14} className="text-emerald-500 shrink-0" />,
-  [FocusStatus.CANCELED]:    <XCircle size={14} className="text-red-500 shrink-0" />,
-  [FocusStatus.IN_PROGRESS]: <Clock   size={14} className="text-sky-500 shrink-0" />,
+  [FocusStatus.COMPLETED]:   <Check   size={14} className="text-emerald-500 shrink-0 mt-0.5" />,
+  [FocusStatus.CANCELED]:    <XCircle size={14} className="text-red-500 shrink-0 mt-0.5" />,
+  [FocusStatus.IN_PROGRESS]: <Clock   size={14} className="text-sky-500 shrink-0 mt-0.5" />,
 };
 
 const STATUS_RING: Record<FocusStatus, string> = {
@@ -50,9 +46,6 @@ const FILTER_TABS: { label: string; value: FocusStatus | null }[] = [
   { label: "Отменено", value: FocusStatus.CANCELED },
 ];
 
-// suppress unused import warning
-void focusStatusColors;
-
 export function WeekFocus({ weekPlanId }: WeekFocusProps) {
   const {
     focuses,
@@ -66,6 +59,13 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
   } = useWeekFocuses(weekPlanId);
 
   const [activeTab, setActiveTab] = useState<FocusStatus | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isAdding) inputRef.current?.focus();
+  }, [isAdding]);
 
   const sortedFocuses = useMemo(() => {
     if (!focuses) return [];
@@ -78,13 +78,32 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
   const total = sortedFocuses.length;
   const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
+  const handleStartAdd = () => {
+    setNewTitle("");
+    setIsAdding(true);
+  };
+
+  const handleConfirmAdd = () => {
+    const trimmed = newTitle.trim();
+    if (trimmed) {
+      createFocus({ weekPlanId, title: trimmed });
+    }
+    setIsAdding(false);
+    setNewTitle("");
+  };
+
+  const handleCancelAdd = () => {
+    setIsAdding(false);
+    setNewTitle("");
+  };
+
   const handleTabChange = (value: FocusStatus | null) => {
     setActiveTab(value);
     setStatusFilter(value);
   };
 
   if (isLoading) {
-    return <Skeleton className="w-full h-[220px] rounded-2xl" />;
+    return <Skeleton className="w-full h-[180px] rounded-2xl" />;
   }
 
   return (
@@ -104,7 +123,7 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
               size="sm"
               variant="ghost"
               className="h-7 w-7 p-0 rounded-lg hover:bg-primary/15 hover:text-primary"
-              onClick={() => createFocus({ weekPlanId, title: "Новый фокус" })}
+              onClick={handleStartAdd}
             >
               <Plus size={16} />
             </Button>
@@ -144,30 +163,33 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
       </div>
 
       {/* Focus list */}
-      <div className="px-3 py-2.5 space-y-1.5 max-h-[320px] overflow-y-auto">
-        <AnimatePresence mode="popLayout">
-          {sortedFocuses.length === 0 ? (
+      <div className="px-3 py-2.5 space-y-1.5 max-h-[300px] overflow-y-auto">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {sortedFocuses.length === 0 && !isAdding ? (
             <motion.div
+              key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="py-8 text-center text-muted-foreground/60 text-sm"
+              exit={{ opacity: 0 }}
+              className="py-6 text-center text-muted-foreground/60 text-xs"
             >
-              {statusFilter ? "Нет фокусов с таким статусом" : "Добавьте первый фокус"}
+              {statusFilter ? "Нет фокусов с таким статусом" : "Нажмите + чтобы добавить"}
             </motion.div>
           ) : (
-            sortedFocuses.map((focus, i) => (
+            sortedFocuses.map((focus) => (
               <motion.div
                 key={focus.id}
-                initial={{ opacity: 0, y: 6 }}
+                layout
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ delay: i * 0.03 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.18 }}
                 className={cn(
-                  "flex items-start gap-2.5 p-2.5 rounded-xl border transition-all group",
+                  "flex items-start gap-2.5 p-2.5 rounded-xl border transition-colors group",
                   STATUS_RING[focus.status]
                 )}
               >
-                <div className="mt-0.5">{STATUS_ICON[focus.status]}</div>
+                <div>{STATUS_ICON[focus.status]}</div>
 
                 <div className="flex-1 min-w-0">
                   <EditableText
@@ -217,14 +239,44 @@ export function WeekFocus({ weekPlanId }: WeekFocusProps) {
             ))
           )}
         </AnimatePresence>
+
+        {/* Inline input for new focus */}
+        <AnimatePresence>
+          {isAdding && (
+            <motion.div
+              key="new-input"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-2 p-2 rounded-xl border border-primary/40 bg-primary/5"
+            >
+              <Clock size={14} className="text-sky-500 shrink-0" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleConfirmAdd();
+                  if (e.key === "Escape") handleCancelAdd();
+                }}
+                onBlur={handleConfirmAdd}
+                placeholder="Название фокуса..."
+                className="flex-1 text-xs bg-transparent outline-none text-foreground placeholder:text-muted-foreground/50"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {total > 0 && (
+      {/* Bottom add button */}
+      {(total > 0 || isAdding) && !isAdding && (
         <div className="px-3 pb-3">
           <Button
             variant="ghost"
-            className="w-full h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/8 rounded-xl"
-            onClick={() => createFocus({ weekPlanId, title: "Новый фокус" })}
+            className="w-full h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/8 rounded-xl"
+            onClick={handleStartAdd}
           >
             <Plus className="h-3.5 w-3.5" />
             Добавить фокус

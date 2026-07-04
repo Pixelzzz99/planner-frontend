@@ -275,81 +275,78 @@ function WeekPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - фиксированный */}
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Fixed header */}
       <WeekPageHeader
         weekPlan={weekPlan!}
         onBack={() => router.push("/dashboard/year")}
       />
 
-      {/* Main Content */}
-      <div className="mx-auto p-6 pt-24 pb-[300px]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Левая колонка с WeekFocus и TaskCategories */}
-          <LeftSidePage userId={userId} weekId={weekId} tasks={tasks} />
-
-          {/* Правая колонка с DndContext */}
-          <div className="lg:col-span-9">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={collisionDetection}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragEnd={handleDragEnd}
-            >
-              <div>
-                <div className="overflow-hidden">
-                  <div
-                    ref={scrollBoardRef}
-                    className="flex items-start gap-4 overflow-x-auto pb-4 scroll-smooth"
-                  >
-                    {DAYS.map((day) => (
-                      <DayColumn
-                        key={day.id}
-                        day={{
-                          ...day,
-                          tasks: tasksByDay[day.id] || [],
-                        }}
-                        openAddTask={openAddTask}
-                        openEditTask={openEditTask}
-                        handleDeleteTask={handleDeleteTask}
-                        dropLine={dropLine}
-                        isCurrentDay={day.id === focusDayId}
-                        scrollToRef={day.id === focusDayId ? currentDayRef : undefined}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Фиксированный архив внизу */}
-              <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t border-border">
-                <div className="container mx-auto p-6">
-                  <TaskArchive
-                    tasks={archivedTasks!}
-                    isLoading={isLoading}
-                    onEditTask={openEditTask}
-                    onDeleteTask={handleDeleteTask}
-                  />
-                </div>
-              </div>
-
-              <DragOverlay dropAnimation={defaultDropAnimation}>
-                {activeTask ? (
-                  <TaskCard
-                    task={activeTask}
-                    containerId={"-1"}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                  />
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+      {/* Body — fills remaining height */}
+      <div className="flex flex-1 overflow-hidden pt-[57px]">
+        {/* Sidebar — fixed width, scrolls vertically */}
+        <aside className="w-[300px] flex-shrink-0 overflow-y-auto border-r border-black/8 dark:border-white/6 bg-background/50">
+          <div className="p-4 space-y-4">
+            <LeftSidePage userId={userId} weekId={weekId} tasks={tasks} />
           </div>
-        </div>
+        </aside>
+
+        {/* Board area — takes rest, scrolls horizontally */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={collisionDetection}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            {/* Day columns — horizontal scroll */}
+            <div
+              ref={scrollBoardRef}
+              className="flex-1 overflow-x-auto overflow-y-auto p-5 pb-6"
+            >
+              <div className="flex gap-4 items-start h-full min-h-0 w-max">
+                {DAYS.map((day) => (
+                  <DayColumn
+                    key={day.id}
+                    day={{ ...day, tasks: tasksByDay[day.id] || [] }}
+                    openAddTask={openAddTask}
+                    openEditTask={openEditTask}
+                    handleDeleteTask={handleDeleteTask}
+                    dropLine={dropLine}
+                    isCurrentDay={day.id === focusDayId}
+                    scrollToRef={day.id === focusDayId ? currentDayRef : undefined}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Archive — sticks to bottom of board */}
+            <div className="flex-shrink-0 border-t border-black/8 dark:border-white/6 bg-background/80 backdrop-blur-sm">
+              <div className="px-5 py-3">
+                <TaskArchive
+                  tasks={archivedTasks!}
+                  isLoading={isLoading}
+                  onEditTask={openEditTask}
+                  onDeleteTask={handleDeleteTask}
+                />
+              </div>
+            </div>
+
+            <DragOverlay dropAnimation={defaultDropAnimation}>
+              {activeTask ? (
+                <TaskCard
+                  task={activeTask}
+                  containerId={"-1"}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </main>
       </div>
 
-      {/* Modals */}
       <TaskSheet
         isOpen={isModalOpen}
         onClose={closeModal}

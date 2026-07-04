@@ -17,10 +17,10 @@ export const LeftSidePage = ({ weekId, tasks = [] }: LeftSidePageProps) => {
     onDeleteCategory,
     isLoading: isCategoriesLoading,
   } = useCategoriesWidget();
-  return (
-    <div className="lg:col-span-3 space-y-6">
-      <WeekFocus weekPlanId={weekId} />
 
+  return (
+    <div className="space-y-4">
+      <WeekFocus weekPlanId={weekId} />
       <TaskCategories
         categories={categories}
         tasks={tasks}
