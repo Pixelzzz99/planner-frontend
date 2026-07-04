@@ -35,7 +35,15 @@ export const useTaskForm = (): UseTaskFormResult => {
 
   const openEditTask = (task: Task) => {
     setTaskForm({
-      ...task,
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      duration: task.duration,
+      status: task.status,
+      categoryId: task.categoryId ?? "",
+      day: task.day,
+      date: task.date,
     });
     setIsModalOpen(true);
   };

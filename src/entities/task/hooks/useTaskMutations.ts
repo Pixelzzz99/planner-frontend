@@ -10,6 +10,7 @@ import { CreateTaskDTO, UpdateTaskDTO, Task } from "../models/task.model";
 import { archivedTasksKeys } from "./useArchivedTasks";
 import { TaskState } from "../types/task-operations";
 import { categoryKeys } from "@/entities/categories/model/keys";
+import { toTaskCreatePayload, toTaskUpdatePayload } from "../lib/toTaskPayload";
 import { computeFractionalPosition } from "../lib/computeFractionalPosition";
 import { useMoveQueue } from "./useMoveQueue";
 import { useCallback, useRef } from "react";
@@ -88,16 +89,7 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
 
     updateWeekTasks((tasks) => [...tasks, newTask]);
 
-    const taskData = (() => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, createdAt, ...rest } = newTask;
-      if (!newTask.categoryId) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { categoryId, ...taskDataWithoutCategory } = rest;
-        return taskDataWithoutCategory;
-      }
-      return rest;
-    })();
+    const taskData = toTaskCreatePayload(data);
 
     createTask(
       { weekId, data: taskData },
@@ -113,12 +105,14 @@ export const useTaskMutations = ({ weekId }: UseTaskMutationsProps) => {
   };
 
   const updateExistingTask = (taskId: string, data: UpdateTaskDTO) => {
+    const payload = toTaskUpdatePayload(data);
+
     updateWeekTasks((tasks) =>
-      tasks.map((task) => (task.id === taskId ? { ...task, ...data } : task))
+      tasks.map((task) => (task.id === taskId ? { ...task, ...payload } : task))
     );
 
     updateTask(
-      { taskId, weekId, data },
+      { taskId, weekId, data: payload },
       { onSuccess: () => invalidateCategories() },
     );
   };

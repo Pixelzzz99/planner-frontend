@@ -1,5 +1,5 @@
 import { api } from "@/shared/api/api";
-import { CreateTaskDTO, Task } from "../models/task.model";
+import { CreateTaskDTO, TaskWritePayload, Task } from "../models/task.model";
 
 import { MoveTaskDto } from "../models/task.model";
 
@@ -16,7 +16,7 @@ export const taskApi = {
 
   updateTask: async (
     taskId: string,
-    data: Partial<CreateTaskDTO>
+    data: Partial<TaskWritePayload>
   ): Promise<Task> => {
     const res = await api.patch(`/tasks/${taskId}`, data);
     return res.data;
