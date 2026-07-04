@@ -12,6 +12,8 @@ interface TaskCardProps {
   containerId: string;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  /** Same-column reorder: drag the real card instead of a ghost overlay */
+  useNativeSortableDrag?: boolean;
 }
 
 const PRIORITY_CONFIG = {
@@ -31,6 +33,7 @@ export const TaskCard = memo(function TaskCard({
   containerId,
   onEdit,
   onDelete,
+  useNativeSortableDrag = false,
 }: TaskCardProps) {
   const {
     attributes,
@@ -43,13 +46,15 @@ export const TaskCard = memo(function TaskCard({
     id: task.id,
     data: { type: "Task", task, container: containerId },
     animateLayoutChanges: (args) =>
-      args.isSorting || args.wasDragging ? false : defaultAnimateLayoutChanges(args),
+      args.wasDragging ? false : defaultAnimateLayoutChanges(args),
   });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? transition : undefined,
-    opacity: isDragging ? 0.35 : 1,
+    opacity: isDragging && !useNativeSortableDrag ? 0.35 : 1,
+    zIndex: isDragging && useNativeSortableDrag ? 2 : undefined,
+    position: isDragging && useNativeSortableDrag ? "relative" : undefined,
   };
 
   const priority = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.LOW;
@@ -61,7 +66,10 @@ export const TaskCard = memo(function TaskCard({
       ref={setNodeRef}
       style={style}
       className={[
-        "group relative w-full rounded-xl border transition-shadow duration-300 cursor-default",
+        "group relative w-full rounded-xl border cursor-default",
+        isDragging
+          ? "shadow-[0_8px_24px_rgba(139,92,246,0.2)]"
+          : "transition-shadow duration-300",
         "bg-white/80 dark:bg-white/5",
         "border-black/8 dark:border-white/8",
         "hover:border-black/15 dark:hover:border-white/15",

@@ -12,6 +12,7 @@ interface DayColumnProps {
   openEditTask: (task: Task) => void;
   handleDeleteTask: (taskId: string) => void;
   dropLine: { targetId: string | null; position: "before" | "after" | null };
+  nativeSortableDrag?: boolean;
   isCurrentDay?: boolean;
   scrollToRef?: React.RefObject<HTMLDivElement | null>;
 }
@@ -67,6 +68,7 @@ export const DayColumn = memo(function DayColumn({
   openEditTask,
   handleDeleteTask,
   dropLine,
+  nativeSortableDrag = false,
   isCurrentDay,
   scrollToRef,
 }: DayColumnProps) {
@@ -162,7 +164,9 @@ export const DayColumn = memo(function DayColumn({
         >
           {sortedTasks.map((task) => (
             <div key={task.id} className="relative">
-              {dropLine.targetId === task.id && dropLine.position === "before" && (
+              {!nativeSortableDrag &&
+                dropLine.targetId === task.id &&
+                dropLine.position === "before" && (
                 <div className="absolute -top-1.5 left-0 right-0 flex items-center z-10 pointer-events-none">
                   <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full" />
                   <div className="absolute h-2.5 w-2.5 bg-primary rounded-full left-1/2 -translate-x-1/2 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
@@ -174,9 +178,12 @@ export const DayColumn = memo(function DayColumn({
                 containerId={String(day.id)}
                 onEdit={openEditTask}
                 onDelete={handleDeleteTask}
+                useNativeSortableDrag={nativeSortableDrag}
               />
 
-              {dropLine.targetId === task.id && dropLine.position === "after" && (
+              {!nativeSortableDrag &&
+                dropLine.targetId === task.id &&
+                dropLine.position === "after" && (
                 <div className="absolute -bottom-1.5 left-0 right-0 flex items-center z-10 pointer-events-none">
                   <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full" />
                   <div className="absolute h-2.5 w-2.5 bg-primary rounded-full left-1/2 -translate-x-1/2 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />

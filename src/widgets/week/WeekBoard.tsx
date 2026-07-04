@@ -108,6 +108,7 @@ export const WeekBoard = memo(function WeekBoard({
   };
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [overContainerId, setOverContainerId] = useState<string | null>(null);
   const [dropLine, setDropLine] = useState<DropLine>(EMPTY_DROP_LINE);
   const dropLineRef = useRef<DropLine>(EMPTY_DROP_LINE);
 
@@ -125,12 +126,16 @@ export const WeekBoard = memo(function WeekBoard({
 
   const resetIndicators = () => {
     setActiveTask(null);
+    setOverContainerId(null);
     updateDropLine(EMPTY_DROP_LINE);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = event.active.data.current?.task as Task;
-    if (task) setActiveTask(task);
+    if (task) {
+      setActiveTask(task);
+      setOverContainerId(String(task.day));
+    }
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -142,10 +147,20 @@ export const WeekBoard = memo(function WeekBoard({
 
     const overData = over.data.current;
     const overType = overData?.type;
+    const activeContainer = active.data.current?.container as string | undefined;
 
     if (overType === "Task") {
       const overTask = overData!.task as Task;
+      const overContainer = overData!.container as string;
+      setOverContainerId(overContainer);
+
       if (overTask.id === active.id) {
+        updateDropLine(EMPTY_DROP_LINE);
+        return;
+      }
+
+      // Same column: sortable handles visual gap — skip custom drop line
+      if (activeContainer === overContainer) {
         updateDropLine(EMPTY_DROP_LINE);
         return;
       }
@@ -162,6 +177,11 @@ export const WeekBoard = memo(function WeekBoard({
         position: isBefore ? "before" : "after",
       });
     } else if (overType === "day-column") {
+      setOverContainerId(overData?.container ?? null);
+      if (activeContainer === overData?.container) {
+        updateDropLine(EMPTY_DROP_LINE);
+        return;
+      }
       updateDropLine({
         targetId: overData?.container ?? null,
         position: "after",
@@ -257,6 +277,11 @@ export const WeekBoard = memo(function WeekBoard({
     resetIndicators();
   };
 
+  const isIntraDayDrag =
+    !!activeTask &&
+    !activeTask.isArchived &&
+    overContainerId === String(activeTask.day);
+
   return (
     <DndContext
       sensors={sensors}
@@ -285,6 +310,9 @@ export const WeekBoard = memo(function WeekBoard({
                 openEditTask={openEditTask}
                 handleDeleteTask={handleDeleteTask}
                 dropLine={columnDropLine}
+                nativeSortableDrag={
+                  isIntraDayDrag && String(day.id) === String(activeTask?.day)
+                }
                 isCurrentDay={day.id === focusDayId}
                 scrollToRef={
                   day.id === focusDayId ? currentDayRef : undefined
@@ -307,7 +335,7 @@ export const WeekBoard = memo(function WeekBoard({
       </div>
 
       <DragOverlay dropAnimation={null}>
-        {activeTask ? (
+        {activeTask && !isIntraDayDrag ? (
           <TaskCard
             task={activeTask}
             containerId="-1"
