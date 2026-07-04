@@ -9,7 +9,9 @@ export interface WeekFocus {
   title: string;
   description?: string;
   weekPlanId: string;
-  createdAt: string;
+  goalId?: string | null;
+  goal?: { id: string; title: string } | null;
+  createdAt?: string;
   status: FocusStatus;
 }
 
@@ -18,6 +20,7 @@ export interface CreateWeekFocusDTO {
   title: string;
   description?: string;
   status?: FocusStatus;
+  goalId?: string | null;
 }
 
 export const focusStatusLabels: Record<FocusStatus, string> = {

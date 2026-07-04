@@ -4,10 +4,16 @@ import { weekFocusApi } from "../api/week-focus.api";
 import { CreateWeekFocusDTO, FocusStatus } from "../model/types";
 import { useState, useMemo } from "react";
 
-export function useWeekFocuses(weekPlanId: string) {
+export function useWeekFocuses(weekPlanId: string, goalYear?: number) {
   const queryClient = useQueryClient();
   const queryKey = ["weekFocuses", weekPlanId];
   const [statusFilter, setStatusFilter] = useState<FocusStatus | null>(null);
+
+  const invalidateGoals = () => {
+    if (goalYear) {
+      queryClient.invalidateQueries({ queryKey: ["goals"], exact: false });
+    }
+  };
 
   const { data: focuses = [], isLoading } = useQuery({
     queryKey,
@@ -28,6 +34,7 @@ export function useWeekFocuses(weekPlanId: string) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      invalidateGoals();
       toast.success("Фокус добавлен");
     },
     onError: () => toast.error("Не удалось добавить фокус"),
@@ -43,6 +50,7 @@ export function useWeekFocuses(weekPlanId: string) {
     }) => weekFocusApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      invalidateGoals();
     },
     onError: () => toast.error("Не удалось обновить фокус"),
   });
@@ -51,6 +59,7 @@ export function useWeekFocuses(weekPlanId: string) {
     mutationFn: weekFocusApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      invalidateGoals();
       toast.success("Фокус удалён");
     },
     onError: () => toast.error("Не удалось удалить фокус"),

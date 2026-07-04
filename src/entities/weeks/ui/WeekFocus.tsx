@@ -19,13 +19,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useConfirm } from "@/shared/ui/ConfirmDialog";
+import { useGoals } from "@/shared/hooks/useGoals";
 
 interface WeekFocusProps {
   weekPlanId: string;
+  weekStart?: string;
   embedded?: boolean;
 }
 
@@ -48,7 +53,12 @@ const FILTER_TABS: { label: string; value: FocusStatus | null }[] = [
   { label: "Отменено", value: FocusStatus.CANCELED },
 ];
 
-export function WeekFocus({ weekPlanId, embedded = false }: WeekFocusProps) {
+export function WeekFocus({ weekPlanId, weekStart, embedded = false }: WeekFocusProps) {
+  const goalYear = weekStart
+    ? new Date(weekStart).getFullYear()
+    : new Date().getFullYear();
+
+  const { goals } = useGoals(goalYear);
   const {
     focuses,
     isLoading,
@@ -58,12 +68,13 @@ export function WeekFocus({ weekPlanId, embedded = false }: WeekFocusProps) {
     updateFocusStatus,
     statusFilter,
     setStatusFilter,
-  } = useWeekFocuses(weekPlanId);
+  } = useWeekFocuses(weekPlanId, goalYear);
   const confirm = useConfirm();
 
   const [activeTab, setActiveTab] = useState<FocusStatus | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [newGoalId, setNewGoalId] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -72,9 +83,7 @@ export function WeekFocus({ weekPlanId, embedded = false }: WeekFocusProps) {
 
   const sortedFocuses = useMemo(() => {
     if (!focuses) return [];
-    return [...focuses].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+    return [...focuses];
   }, [focuses]);
 
   const completedCount = sortedFocuses.filter((f) => f.status === FocusStatus.COMPLETED).length;
@@ -83,21 +92,28 @@ export function WeekFocus({ weekPlanId, embedded = false }: WeekFocusProps) {
 
   const handleStartAdd = () => {
     setNewTitle("");
+    setNewGoalId("");
     setIsAdding(true);
   };
 
   const handleConfirmAdd = () => {
     const trimmed = newTitle.trim();
     if (trimmed) {
-      createFocus({ weekPlanId, title: trimmed });
+      createFocus({
+        weekPlanId,
+        title: trimmed,
+        goalId: newGoalId || null,
+      });
     }
     setIsAdding(false);
     setNewTitle("");
+    setNewGoalId("");
   };
 
   const handleCancelAdd = () => {
     setIsAdding(false);
     setNewTitle("");
+    setNewGoalId("");
   };
 
   const handleTabChange = (value: FocusStatus | null) => {
@@ -218,6 +234,11 @@ export function WeekFocus({ weekPlanId, embedded = false }: WeekFocusProps) {
                       focus.status === FocusStatus.COMPLETED && "text-emerald-600 dark:text-emerald-400"
                     )}
                   />
+                  {focus.goal && (
+                    <p className="text-[10px] text-orange-500/90 truncate px-1 mt-0.5" title={focus.goal.title}>
+                      🎯 {focus.goal.title}
+                    </p>
+                  )}
                 </div>
 
                 <DropdownMenu>
@@ -242,6 +263,40 @@ export function WeekFocus({ weekPlanId, embedded = false }: WeekFocusProps) {
                         {focusStatusLabels[s]}
                       </DropdownMenuItem>
                     ))}
+                    {goals.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="text-xs">
+                            Привязать к цели
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="max-h-48 overflow-y-auto">
+                            {goals.map((goal) => (
+                              <DropdownMenuItem
+                                key={goal.id}
+                                disabled={focus.goalId === goal.id}
+                                className="text-xs"
+                                onClick={() =>
+                                  updateFocus({ id: focus.id, data: { goalId: goal.id } })
+                                }
+                              >
+                                {goal.title}
+                              </DropdownMenuItem>
+                            ))}
+                            {focus.goalId && (
+                              <DropdownMenuItem
+                                className="text-xs text-muted-foreground"
+                                onClick={() =>
+                                  updateFocus({ id: focus.id, data: { goalId: null } })
+                                }
+                              >
+                                Отвязать от цели
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => handleDeleteFocus(focus.id, focus.title)}
@@ -266,22 +321,38 @@ export function WeekFocus({ weekPlanId, embedded = false }: WeekFocusProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 p-2 rounded-xl border border-primary/40 bg-primary/5"
+              className="flex flex-col gap-2 p-2 rounded-xl border border-primary/40 bg-primary/5"
             >
-              <Clock size={14} className="text-sky-500 shrink-0" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleConfirmAdd();
-                  if (e.key === "Escape") handleCancelAdd();
-                }}
-                onBlur={handleConfirmAdd}
-                placeholder="Название фокуса..."
-                className="flex-1 text-xs bg-transparent outline-none text-foreground placeholder:text-muted-foreground/50"
-              />
+              <div className="flex items-center gap-2">
+                <Clock size={14} className="text-sky-500 shrink-0" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleConfirmAdd();
+                    if (e.key === "Escape") handleCancelAdd();
+                  }}
+                  onBlur={handleConfirmAdd}
+                  placeholder="Название фокуса..."
+                  className="flex-1 text-xs bg-transparent outline-none text-foreground placeholder:text-muted-foreground/50"
+                />
+              </div>
+              {goals.length > 0 && (
+                <select
+                  value={newGoalId}
+                  onChange={(e) => setNewGoalId(e.target.value)}
+                  className="text-[11px] bg-black/5 dark:bg-white/8 border border-black/8 dark:border-white/8 rounded-lg px-2 py-1.5 outline-none text-foreground"
+                >
+                  <option value="">Без привязки к цели</option>
+                  {goals.map((goal) => (
+                    <option key={goal.id} value={goal.id}>
+                      🎯 {goal.title}
+                    </option>
+                  ))}
+                </select>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

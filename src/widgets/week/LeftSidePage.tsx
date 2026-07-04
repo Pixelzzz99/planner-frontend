@@ -63,7 +63,7 @@ export const LeftSidePage = ({
             }
             defaultOpen
           >
-            <WeekFocus weekPlanId={weekId} embedded />
+            <WeekFocus weekPlanId={weekId} weekStart={weekStart} embedded />
           </SidebarSection>
 
           <SidebarSection

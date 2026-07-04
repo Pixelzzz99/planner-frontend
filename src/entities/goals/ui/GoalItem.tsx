@@ -21,6 +21,8 @@ const STATUS_ORDER: Array<Goal["status"]> = ["TODO", "IN_PROGRESS", "COMPLETED"]
 
 export function GoalItem({ goal, onUpdate, onDelete, onStatusChange }: GoalItemProps) {
   const isCompleted = goal.status === "COMPLETED";
+  const hasFocusProgress =
+    (goal.linkedFocusesTotal ?? 0) > 0 && goal.focusProgress != null;
 
   const handleCycleStatus = () => {
     const idx = STATUS_ORDER.indexOf(goal.status);
@@ -32,20 +34,18 @@ export function GoalItem({ goal, onUpdate, onDelete, onStatusChange }: GoalItemP
 
   return (
     <div className={cn(
-      "group flex items-center gap-2 px-2 py-2 rounded-xl transition-all",
+      "group flex items-start gap-2 px-2 py-2 rounded-xl transition-all",
       "hover:bg-black/5 dark:hover:bg-white/5",
       isCompleted && "opacity-60"
     )}>
-      {/* Status cycle button */}
       <button
         onClick={handleCycleStatus}
-        className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded-full hover:bg-primary/15 transition-colors"
+        className="flex-shrink-0 h-5 w-5 mt-0.5 flex items-center justify-center rounded-full hover:bg-primary/15 transition-colors"
         title={cfg.label}
       >
         {cfg.icon}
       </button>
 
-      {/* Title */}
       <div className="flex-1 min-w-0">
         <EditableText
           text={goal.title}
@@ -55,9 +55,21 @@ export function GoalItem({ goal, onUpdate, onDelete, onStatusChange }: GoalItemP
             isCompleted && "line-through text-muted-foreground",
           )}
         />
+        {hasFocusProgress && (
+          <div className="mt-1.5 px-1">
+            <div className="h-0.5 rounded-full bg-black/8 dark:bg-white/8 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-orange-500 to-emerald-500 transition-all duration-500"
+                style={{ width: `${goal.focusProgress}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+              {goal.linkedFocusesCompleted}/{goal.linkedFocusesTotal} фокусов недели
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Delete */}
       <Button
         variant="ghost"
         size="icon"
