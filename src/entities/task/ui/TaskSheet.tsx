@@ -17,8 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Timer, Archive, CheckCircle2, Circle, Zap, Tag } from "lucide-react";
+import { Timer, Archive, CheckCircle2, Circle, Zap, Tag, Repeat } from "lucide-react";
 import { getCategoryColor } from "@/shared/lib/utils/color";
+import { Switch } from "@/components/ui/switch";
 
 interface TaskSheetProps {
   isOpen: boolean;
@@ -207,6 +208,26 @@ export function TaskSheet({
               className="min-h-[100px] bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm resize-none"
             />
           </div>
+
+          {isNew && (
+            <div className="flex items-center justify-between rounded-xl border border-black/8 dark:border-white/8 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <Repeat className="h-4 w-4 text-violet-500" />
+                <div>
+                  <p className="text-sm font-medium">Повторять каждую неделю</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Шаблон можно добавить на любую неделю
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={!!taskForm.repeatWeekly}
+                onCheckedChange={(checked) =>
+                  setTaskForm({ ...taskForm, repeatWeekly: checked })
+                }
+              />
+            </div>
+          )}
         </div>
 
         {/* Footer */}

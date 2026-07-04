@@ -1,13 +1,14 @@
 "use client";
 
 import { Habit } from "../models/habit.model";
-import { Flame } from "lucide-react";
+import { Flame, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HabitRowProps {
   habit: Habit;
   weekDates: string[];
   onToggle: (habitId: string, date: string) => void;
+  onEdit: (habit: Habit) => void;
   onDelete: (habitId: string) => void;
 }
 
@@ -17,6 +18,7 @@ export function HabitRow({
   habit,
   weekDates,
   onToggle,
+  onEdit,
   onDelete,
 }: HabitRowProps) {
   const completedDates = new Set(
@@ -41,14 +43,24 @@ export function HabitRow({
             </span>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-[10px] text-muted-foreground"
-          onClick={() => onDelete(habit.id)}
-        >
-          Удалить
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground"
+            onClick={() => onEdit(habit)}
+          >
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-[10px] text-muted-foreground"
+            onClick={() => onDelete(habit.id)}
+          >
+            Удалить
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 gap-1">

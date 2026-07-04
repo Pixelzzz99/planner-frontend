@@ -3,6 +3,7 @@ import { TaskCategories } from "@/entities/categories/ui/TaskCategories";
 import { WeekFocus } from "@/entities/weeks/ui/WeekFocus";
 import { Task } from "@/entities/task";
 import { HabitsWidget } from "@/entities/habit/ui/HabitsWidget";
+import { RecurringTasksWidget } from "@/entities/recurring-task/ui/RecurringTasksWidget";
 
 interface LeftSidePageProps {
   userId: string;
@@ -27,6 +28,7 @@ export const LeftSidePage = ({
   return (
     <div className="space-y-4">
       <HabitsWidget weekStart={weekStart} />
+      <RecurringTasksWidget weekId={weekId} />
       <WeekFocus weekPlanId={weekId} />
       <TaskCategories
         categories={categories}

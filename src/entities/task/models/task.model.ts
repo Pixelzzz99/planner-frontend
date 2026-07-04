@@ -14,7 +14,10 @@ export interface MoveTaskDto {
 }
 
 export type CreateTaskDTO = Omit<Task, "id" | "createdAt" | "category">;
-export type UpdateTaskDTO = Partial<CreateTaskDTO> & { id?: string };
+export type UpdateTaskDTO = Partial<CreateTaskDTO> & {
+  id?: string;
+  repeatWeekly?: boolean;
+};
 export interface Task {
   id: string;
   position: number;

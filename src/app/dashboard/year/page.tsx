@@ -12,6 +12,7 @@ import {
 import { YearPageHeader } from "@/widgets/year/YearPageHeader";
 import { MonthCard } from "@/entities/month/ui/MonthCard";
 import { GoalsSection } from "@/widgets/goals/GoalsSection";
+import { HabitsHeatmapWidget } from "@/entities/habit/ui/HabitsHeatmapWidget";
 import { useSession } from "next-auth/react";
 import { useYearPlan } from "@/entities/year-plan/hooks/useYearPlan";
 import { useCreateWeek, useDeleteWeek } from "@/entities/weeks/hooks/use-week";
@@ -285,8 +286,9 @@ export default function YearDashboardPage() {
       {/* Main layout: sidebar + month grid */}
       <div className="flex gap-6 items-start">
         {/* Goals sidebar — sticky */}
-        <div className="w-[280px] flex-shrink-0 sticky top-6">
+        <div className="w-[280px] flex-shrink-0 sticky top-6 space-y-4">
           <GoalsSection year={selectedYear} />
+          <HabitsHeatmapWidget year={selectedYear} />
         </div>
 
         {/* Month grid */}

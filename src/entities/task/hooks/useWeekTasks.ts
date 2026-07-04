@@ -2,10 +2,14 @@ import { useWeekPlan } from "@/entities/weeks/hooks/use-week";
 import { useArchivedTasks } from "./useArchivedTasks";
 import { useTaskForm } from "./useTaskForm";
 import { useTaskMutations } from "./useTaskMutations";
-
+import { recurringTaskApi } from "@/entities/recurring-task/api/recurring-task.api";
+import { recurringTaskKeys } from "@/entities/recurring-task/hooks/useRecurringTasks";
 import { CreateTaskDTO } from "../models/task.model";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export const useWeekTasks = (weekId: string) => {
+  const queryClient = useQueryClient();
   const { data: weekPlan, isLoading: isWeekLoading } = useWeekPlan(weekId);
   const { data: archivedTasks, isLoading: isArchivedLoading } =
     useArchivedTasks();
@@ -22,11 +26,30 @@ export const useWeekTasks = (weekId: string) => {
   const { createNewTask, updateExistingTask, deleteExistingTask, commitTaskPosition } =
     useTaskMutations({ weekId });
 
-  const handleSubmitTask = () => {
-    if ("id" in taskForm) {
-      updateExistingTask(taskForm.id!, taskForm);
+  const handleSubmitTask = async () => {
+    if (taskForm.id) {
+      const { repeatWeekly, ...data } = taskForm;
+      void repeatWeekly;
+      updateExistingTask(taskForm.id, data);
     } else {
-      createNewTask(taskForm as CreateTaskDTO);
+      const { repeatWeekly, ...taskData } = taskForm;
+      createNewTask(taskData as CreateTaskDTO);
+      if (repeatWeekly) {
+        try {
+          await recurringTaskApi.create({
+            title: taskData.title!,
+            description: taskData.description,
+            priority: taskData.priority,
+            duration: taskData.duration,
+            day: taskData.day!,
+            categoryId: taskData.categoryId || undefined,
+          });
+          queryClient.invalidateQueries({ queryKey: recurringTaskKeys.all });
+          toast.success("Задача будет повторяться каждую неделю");
+        } catch {
+          toast.error("Не удалось сохранить шаблон повторения");
+        }
+      }
     }
     closeModal();
   };

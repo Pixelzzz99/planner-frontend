@@ -83,6 +83,25 @@ export function useHabits(weekStart?: string) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { title?: string; color?: string };
+    }) => habitApi.updateHabit(id, data),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Habit[]>(habitKeys.week(weekKey), (old = []) =>
+        old.map((habit) =>
+          habit.id === updated.id ? { ...habit, ...updated } : habit,
+        ),
+      );
+      toast.success("Привычка обновлена");
+    },
+    onError: () => toast.error("Не удалось обновить привычку"),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: habitApi.deleteHabit,
     onSuccess: (_, habitId) => {
@@ -99,6 +118,7 @@ export function useHabits(weekStart?: string) {
     weekDates,
     isLoading: query.isLoading,
     createHabit: createMutation.mutate,
+    updateHabit: updateMutation.mutate,
     toggleHabitLog: toggleMutation.mutate,
     deleteHabit: deleteMutation.mutate,
   };

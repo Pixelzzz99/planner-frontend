@@ -4,11 +4,18 @@ import {
   Habit,
   ToggleHabitLogDTO,
 } from "../models/habit.model";
+import { HabitHeatmapData } from "../models/habit-heatmap.model";
 
 export const habitApi = {
   fetchHabits(weekStart?: string) {
     return api
       .get<Habit[]>("/habits", { params: weekStart ? { weekStart } : {} })
+      .then((res) => res.data);
+  },
+
+  fetchHeatmap(year: number) {
+    return api
+      .get<HabitHeatmapData>("/habits/heatmap", { params: { year } })
       .then((res) => res.data);
   },
 

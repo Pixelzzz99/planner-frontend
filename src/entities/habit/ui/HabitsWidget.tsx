@@ -12,23 +12,37 @@ import {
 import { Plus, Target } from "lucide-react";
 import { useHabits } from "../hooks/useHabits";
 import { HabitRow } from "./HabitRow";
+import { HabitEditDialog } from "./HabitEditDialog";
 import { useConfirm } from "@/shared/ui/ConfirmDialog";
+import { HABIT_COLORS } from "../models/habit-heatmap.model";
+import { Habit } from "../models/habit.model";
+import { cn } from "@/lib/utils";
 
 interface HabitsWidgetProps {
   weekStart?: string;
 }
 
 export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
-  const { habits, weekDates, isLoading, createHabit, toggleHabitLog, deleteHabit } =
-    useHabits(weekStart);
+  const {
+    habits,
+    weekDates,
+    isLoading,
+    createHabit,
+    updateHabit,
+    toggleHabitLog,
+    deleteHabit,
+  } = useHabits(weekStart);
   const confirm = useConfirm();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [title, setTitle] = useState("");
+  const [color, setColor] = useState<string>(HABIT_COLORS[0]);
 
   const handleCreate = () => {
     if (!title.trim()) return;
-    createHabit({ title: title.trim() });
+    createHabit({ title: title.trim(), color });
     setTitle("");
+    setColor(HABIT_COLORS[0]);
     setIsDialogOpen(false);
   };
 
@@ -85,6 +99,7 @@ export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
                 onToggle={(habitId, date) =>
                   toggleHabitLog({ habitId, date })
                 }
+                onEdit={setEditingHabit}
                 onDelete={handleDeleteHabit}
               />
             ))
@@ -105,6 +120,22 @@ export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
               autoFocus
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             />
+            <div className="flex flex-wrap gap-2">
+              {HABIT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className={cn(
+                    "h-7 w-7 rounded-full border-2 transition-transform",
+                    color === c
+                      ? "border-foreground scale-110"
+                      : "border-transparent hover:scale-105",
+                  )}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
                 Отмена
@@ -116,6 +147,13 @@ export function HabitsWidget({ weekStart }: HabitsWidgetProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <HabitEditDialog
+        habit={editingHabit}
+        open={!!editingHabit}
+        onOpenChange={(open) => !open && setEditingHabit(null)}
+        onSave={(id, data) => updateHabit({ id, data })}
+      />
     </>
   );
 }

@@ -11,6 +11,7 @@ function getInitialTaskForm(): UpdateTaskDTO {
     categoryId: "",
     day: 1,
     date: new Date().toISOString(),
+    repeatWeekly: false,
   };
 }
 
