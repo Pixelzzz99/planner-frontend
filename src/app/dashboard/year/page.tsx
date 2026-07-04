@@ -283,16 +283,13 @@ export default function YearDashboardPage() {
         }
       />
 
-      {/* Main layout: sidebar + month grid */}
+      {/* Goals sidebar + main content */}
       <div className="flex gap-6 items-start">
-        {/* Goals sidebar — sticky */}
-        <div className="w-[280px] flex-shrink-0 sticky top-6 space-y-4">
+        <div className="w-[300px] flex-shrink-0 sticky top-6">
           <GoalsSection year={selectedYear} />
-          <HabitsHeatmapWidget year={selectedYear} />
         </div>
 
-        {/* Month grid */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-6">
           {!activeYearData ? (
             <div className="flex flex-col items-center justify-center py-32 gap-5 rounded-2xl border border-black/8 dark:border-white/6 glass">
               <p className="text-2xl font-bold gradient-text">
@@ -322,6 +319,8 @@ export default function YearDashboardPage() {
               ))}
             </div>
           )}
+
+          <HabitsHeatmapWidget year={selectedYear} />
         </div>
       </div>
 

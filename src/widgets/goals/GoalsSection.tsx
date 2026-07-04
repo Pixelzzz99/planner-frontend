@@ -101,7 +101,7 @@ export function GoalsSection({ year }: { year: number }) {
         </div>
 
         {/* List */}
-        <div className="px-2 py-2 space-y-1 max-h-[calc(100vh-300px)] overflow-y-auto">
+        <div className="px-2 py-2 space-y-1 max-h-[calc(100vh-220px)] overflow-y-auto">
           {total === 0 ? (
             <div className="py-10 text-center text-muted-foreground/50 text-sm">
               Добавьте первую цель года
