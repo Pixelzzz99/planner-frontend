@@ -55,6 +55,7 @@ function WeekPageContent() {
     closeModal,
     handleSubmitTask,
     handleDeleteTask,
+    handleStatusChange,
     commitTaskPosition,
   } = useWeekTasks(weekId);
 
@@ -168,6 +169,7 @@ function WeekPageContent() {
             openAddTask={openAddTask}
             openEditTask={openEditTask}
             handleDeleteTask={handleDeleteTaskWithConfirm}
+            onStatusChange={handleStatusChange}
             commitTaskPosition={commitTaskPosition}
           />
         </main>

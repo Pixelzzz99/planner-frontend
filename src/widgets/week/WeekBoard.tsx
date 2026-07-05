@@ -21,7 +21,7 @@ import {
 import { DAYS } from "@/shared/constants/days";
 import { DayColumn } from "@/entities/task/ui/DayColumn";
 import { TaskArchive } from "@/entities/task/ui/TaskArchive";
-import { Task } from "@/entities/task";
+import { Task, TaskStatus } from "@/entities/task";
 import { TaskCard } from "@/entities/task/ui/TaskCard";
 import {
   buildContainerItems,
@@ -41,6 +41,7 @@ interface WeekBoardProps {
   openAddTask: (day: number) => void;
   openEditTask: (task: Task) => void;
   handleDeleteTask: (taskId: string) => void;
+  onStatusChange?: (taskId: string, status: TaskStatus) => void;
   commitTaskPosition: (
     taskId: string,
     destinationDay: number,
@@ -59,6 +60,7 @@ export const WeekBoard = memo(function WeekBoard({
   openAddTask,
   openEditTask,
   handleDeleteTask,
+  onStatusChange,
   commitTaskPosition,
 }: WeekBoardProps) {
   const dayIds = useMemo(() => DAYS.map((d) => d.id), []);
@@ -243,6 +245,7 @@ export const WeekBoard = memo(function WeekBoard({
               openAddTask={openAddTask}
               openEditTask={openEditTask}
               handleDeleteTask={handleDeleteTask}
+              onStatusChange={onStatusChange}
               isCurrentDay={day.id === focusDayId}
               scrollToRef={day.id === focusDayId ? currentDayRef : undefined}
             />
@@ -257,6 +260,7 @@ export const WeekBoard = memo(function WeekBoard({
             isLoading={isLoading}
             onEditTask={openEditTask}
             onDeleteTask={handleDeleteTask}
+            onStatusChange={onStatusChange}
           />
         </div>
       </div>

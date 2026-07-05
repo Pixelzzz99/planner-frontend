@@ -3,16 +3,23 @@
 import { useSortable, defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { GripVertical, Pencil, Trash2, Clock } from "lucide-react";
-import { Task } from "../models/task.model";
+import { GripVertical, Pencil, Trash2, Clock, Circle, Zap, CheckCircle2, ChevronDown } from "lucide-react";
+import { Task, TaskStatus } from "../models/task.model";
 import { formatDuration } from "@/shared/lib/formatDuration";
 import { CSSProperties, memo } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface TaskCardProps {
   task: Task;
   containerId: string;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  onStatusChange?: (taskId: string, status: TaskStatus) => void;
   /** Rendered inside DragOverlay — no sortable hooks */
   isOverlay?: boolean;
 }
@@ -24,15 +31,22 @@ const PRIORITY_CONFIG = {
 } as const;
 
 const STATUS_CONFIG = {
-  COMPLETED:   { label: "Готово",   bar: "#10B981", cls: "text-emerald-600 dark:text-emerald-400" },
-  IN_PROGRESS: { label: "В работе", bar: "#06B6D4", cls: "text-sky-600 dark:text-blue-400" },
-  TODO:        { label: "Ожидает",  bar: "#94A3B8", cls: "text-muted-foreground" },
+  COMPLETED:   { label: "Готово",   bar: "#10B981", cls: "text-emerald-600 dark:text-emerald-400", icon: CheckCircle2 },
+  IN_PROGRESS: { label: "В работе", bar: "#06B6D4", cls: "text-sky-600 dark:text-blue-400", icon: Zap },
+  TODO:        { label: "Ожидает",  bar: "#94A3B8", cls: "text-muted-foreground", icon: Circle },
 } as const;
+
+const STATUS_ORDER: TaskStatus[] = [
+  TaskStatus.TODO,
+  TaskStatus.IN_PROGRESS,
+  TaskStatus.COMPLETED,
+];
 
 function TaskCardView({
   task,
   onEdit,
   onDelete,
+  onStatusChange,
   style,
   dragHandleProps,
   isOverlay,
@@ -40,6 +54,7 @@ function TaskCardView({
   task: Task;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  onStatusChange?: (taskId: string, status: TaskStatus) => void;
   style?: CSSProperties;
   dragHandleProps?: Record<string, unknown>;
   isOverlay?: boolean;
@@ -95,13 +110,49 @@ function TaskCardView({
           )}
 
           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-            <span className={`text-[11px] font-medium ${status.cls} flex items-center gap-1`}>
-              <span
-                className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: status.bar }}
-              />
-              {status.label}
-            </span>
+            {onStatusChange && !isOverlay ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className={`text-[11px] font-medium ${status.cls} flex items-center gap-1 rounded-md px-1 py-0.5 -ml-1 hover:bg-black/6 dark:hover:bg-white/8 transition-colors`}
+                    title="Сменить статус"
+                  >
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: status.bar }}
+                    />
+                    {status.label}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-40">
+                  {STATUS_ORDER.map((s) => {
+                    const cfg = STATUS_CONFIG[s];
+                    const Icon = cfg.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={s}
+                        onClick={() => onStatusChange(task.id, s)}
+                        className={task.status === s ? "bg-accent" : ""}
+                      >
+                        <Icon className="h-3.5 w-3.5 mr-2" style={{ color: cfg.bar }} />
+                        {cfg.label}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <span className={`text-[11px] font-medium ${status.cls} flex items-center gap-1`}>
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: status.bar }}
+                />
+                {status.label}
+              </span>
+            )}
 
             {task.category?.name && (
               <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
@@ -148,6 +199,7 @@ export const TaskCard = memo(function TaskCard({
   containerId,
   onEdit,
   onDelete,
+  onStatusChange,
   isOverlay = false,
 }: TaskCardProps) {
   const {
@@ -171,6 +223,7 @@ export const TaskCard = memo(function TaskCard({
         task={task}
         onEdit={onEdit}
         onDelete={onDelete}
+        onStatusChange={onStatusChange}
         isOverlay
         dragHandleProps={{}}
       />
@@ -189,6 +242,7 @@ export const TaskCard = memo(function TaskCard({
         task={task}
         onEdit={onEdit}
         onDelete={onDelete}
+        onStatusChange={onStatusChange}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>

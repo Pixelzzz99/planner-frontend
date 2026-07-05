@@ -1,6 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { Archive } from "lucide-react";
-import { Task } from "../models/task.model";
+import { Task, TaskStatus } from "../models/task.model";
 import { TaskCard } from "./TaskCard";
 import { useMemo } from "react";
 import {
@@ -13,6 +13,7 @@ interface TaskArchiveProps {
   isLoading?: boolean;
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
+  onStatusChange?: (taskId: string, status: TaskStatus) => void;
 }
 
 export function TaskArchive({
@@ -20,6 +21,7 @@ export function TaskArchive({
   isLoading,
   onEditTask,
   onDeleteTask,
+  onStatusChange,
 }: TaskArchiveProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: "archive",
@@ -71,6 +73,7 @@ export function TaskArchive({
                   containerId="archive"
                   onEdit={onEditTask}
                   onDelete={onDeleteTask}
+                  onStatusChange={onStatusChange}
                 />
               </div>
             ))}

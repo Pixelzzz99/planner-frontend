@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { TaskCard } from "./TaskCard";
-import { Task } from "../models/task.model";
+import { Task, TaskStatus } from "../models/task.model";
 import { useMemo, CSSProperties, useRef, memo } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
@@ -11,6 +11,7 @@ interface DayColumnProps {
   openAddTask: (day: number) => void;
   openEditTask: (task: Task) => void;
   handleDeleteTask: (taskId: string) => void;
+  onStatusChange?: (taskId: string, status: TaskStatus) => void;
   isCurrentDay?: boolean;
   scrollToRef?: React.RefObject<HTMLDivElement | null>;
 }
@@ -64,6 +65,7 @@ export const DayColumn = memo(function DayColumn({
   openAddTask,
   openEditTask,
   handleDeleteTask,
+  onStatusChange,
   isCurrentDay,
   scrollToRef,
 }: DayColumnProps) {
@@ -159,6 +161,7 @@ export const DayColumn = memo(function DayColumn({
               containerId={String(day.id)}
               onEdit={openEditTask}
               onDelete={handleDeleteTask}
+              onStatusChange={onStatusChange}
             />
           ))}
         </SortableContext>

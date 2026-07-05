@@ -34,20 +34,35 @@ export function usePomodoroTimer() {
   const [secondsLeft, setSecondsLeft] = useState(DURATIONS.focus);
   const [isRunning, setIsRunning] = useState(false);
   const [completedFocus, setCompletedFocus] = useState(0);
+
   const phaseRef = useRef(phase);
   const completedRef = useRef(completedFocus);
+  const secondsLeftRef = useRef(secondsLeft);
+  const endsAtRef = useRef<number | null>(null);
+  const advancingRef = useRef(false);
 
   phaseRef.current = phase;
   completedRef.current = completedFocus;
+  secondsLeftRef.current = secondsLeft;
+
+  const clearDeadline = useCallback(() => {
+    endsAtRef.current = null;
+  }, []);
 
   const goToPhase = useCallback((next: PomodoroPhase) => {
+    clearDeadline();
+    advancingRef.current = false;
     setPhase(next);
     setSecondsLeft(DURATIONS[next]);
     setIsRunning(false);
-  }, []);
+  }, [clearDeadline]);
 
   const advancePhase = useCallback(() => {
+    if (advancingRef.current) return;
+    advancingRef.current = true;
+    clearDeadline();
     playChime();
+
     if (phaseRef.current === "focus") {
       const next = completedRef.current + 1;
       setCompletedFocus(next);
@@ -62,26 +77,67 @@ export function usePomodoroTimer() {
       toast.info("Перерыв окончен — время фокуса");
       goToPhase("focus");
     }
-  }, [goToPhase]);
+  }, [clearDeadline, goToPhase]);
+
+  const syncFromDeadline = useCallback(() => {
+    const endsAt = endsAtRef.current;
+    if (endsAt == null) return;
+
+    const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+    setSecondsLeft(left);
+
+    if (left <= 0) {
+      advancePhase();
+    }
+  }, [advancePhase]);
 
   useEffect(() => {
     if (!isRunning) return;
-    if (secondsLeft <= 0) {
-      advancePhase();
-      return;
+
+    syncFromDeadline();
+
+    const intervalId = window.setInterval(syncFromDeadline, 250);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        syncFromDeadline();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [isRunning, syncFromDeadline]);
+
+  const start = useCallback(() => {
+    endsAtRef.current = Date.now() + secondsLeftRef.current * 1000;
+    setIsRunning(true);
+  }, []);
+
+  const pause = useCallback(() => {
+    if (endsAtRef.current != null) {
+      const left = Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000));
+      setSecondsLeft(left);
     }
-    const id = window.setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => window.clearTimeout(id);
-  }, [isRunning, secondsLeft, advancePhase]);
-
-  const toggle = () => setIsRunning((r) => !r);
-
-  const reset = () => {
+    clearDeadline();
     setIsRunning(false);
-    setSecondsLeft(DURATIONS[phase]);
-  };
+  }, [clearDeadline]);
 
-  const skip = () => advancePhase();
+  const toggle = useCallback(() => {
+    if (isRunning) pause();
+    else start();
+  }, [isRunning, pause, start]);
+
+  const reset = useCallback(() => {
+    clearDeadline();
+    advancingRef.current = false;
+    setIsRunning(false);
+    setSecondsLeft(DURATIONS[phaseRef.current]);
+  }, [clearDeadline]);
+
+  const skip = useCallback(() => advancePhase(), [advancePhase]);
 
   return {
     phase,

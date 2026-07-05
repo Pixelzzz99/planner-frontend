@@ -4,7 +4,7 @@ import { useTaskForm } from "./useTaskForm";
 import { useTaskMutations } from "./useTaskMutations";
 import { recurringTaskApi } from "@/entities/recurring-task/api/recurring-task.api";
 import { recurringTaskKeys } from "@/entities/recurring-task/hooks/useRecurringTasks";
-import { CreateTaskDTO } from "../models/task.model";
+import { CreateTaskDTO, TaskStatus } from "../models/task.model";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -58,6 +58,10 @@ export const useWeekTasks = (weekId: string) => {
     deleteExistingTask(taskId);
   };
 
+  const handleStatusChange = (taskId: string, status: TaskStatus) => {
+    updateExistingTask(taskId, { status });
+  };
+
   return {
     weekPlan,
     tasks: weekPlan?.tasks || [],
@@ -73,6 +77,7 @@ export const useWeekTasks = (weekId: string) => {
     closeModal,
     handleSubmitTask,
     handleDeleteTask,
+    handleStatusChange,
     commitTaskPosition,
   };
 };
