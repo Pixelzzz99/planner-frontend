@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  playTimerFinishedSound,
+  primeTimerAudio,
+  requestTimerNotificationPermission,
+  showTimerFinishedNotification,
+} from "./pomodoroAlert";
 
 export type PomodoroPhase = "focus" | "shortBreak" | "longBreak";
 
@@ -11,23 +17,7 @@ const DURATIONS: Record<PomodoroPhase, number> = {
   longBreak: 15 * 60,
 };
 
-function playChime() {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.value = 0.08;
-    osc.start();
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc.stop(ctx.currentTime + 0.4);
-    void ctx.close();
-  } catch {
-    // Audio not available
-  }
-}
+type AdvanceOptions = { playAlert?: boolean };
 
 export function usePomodoroTimer() {
   const [phase, setPhase] = useState<PomodoroPhase>("focus");
@@ -57,16 +47,36 @@ export function usePomodoroTimer() {
     setIsRunning(false);
   }, [clearDeadline]);
 
-  const advancePhase = useCallback(() => {
+  const advancePhase = useCallback((options?: AdvanceOptions) => {
     if (advancingRef.current) return;
     advancingRef.current = true;
     clearDeadline();
-    playChime();
 
-    if (phaseRef.current === "focus") {
-      const next = completedRef.current + 1;
-      setCompletedFocus(next);
-      const breakPhase = next % 4 === 0 ? "longBreak" : "shortBreak";
+    const wasFocus = phaseRef.current === "focus";
+    const nextCompleted = wasFocus ? completedRef.current + 1 : completedRef.current;
+    const breakPhase =
+      wasFocus && nextCompleted % 4 === 0 ? "longBreak" : "shortBreak";
+
+    if (options?.playAlert !== false) {
+      void playTimerFinishedSound();
+
+      if (wasFocus) {
+        showTimerFinishedNotification(
+          "Помодоро завершён",
+          breakPhase === "longBreak"
+            ? "Отличная работа! Длинный перерыв 15 мин"
+            : "Перерыв 5 мин",
+        );
+      } else {
+        showTimerFinishedNotification(
+          "Перерыв окончен",
+          "Время снова фокусироваться",
+        );
+      }
+    }
+
+    if (wasFocus) {
+      setCompletedFocus(nextCompleted);
       toast.success(
         breakPhase === "longBreak"
           ? "Отличная работа! Длинный перерыв 15 мин"
@@ -87,7 +97,7 @@ export function usePomodoroTimer() {
     setSecondsLeft(left);
 
     if (left <= 0) {
-      advancePhase();
+      advancePhase({ playAlert: true });
     }
   }, [advancePhase]);
 
@@ -112,6 +122,8 @@ export function usePomodoroTimer() {
   }, [isRunning, syncFromDeadline]);
 
   const start = useCallback(() => {
+    void primeTimerAudio();
+    void requestTimerNotificationPermission();
     endsAtRef.current = Date.now() + secondsLeftRef.current * 1000;
     setIsRunning(true);
   }, []);
@@ -137,7 +149,7 @@ export function usePomodoroTimer() {
     setSecondsLeft(DURATIONS[phaseRef.current]);
   }, [clearDeadline]);
 
-  const skip = useCallback(() => advancePhase(), [advancePhase]);
+  const skip = useCallback(() => advancePhase({ playAlert: false }), [advancePhase]);
 
   return {
     phase,
