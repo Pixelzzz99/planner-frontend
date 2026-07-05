@@ -3,10 +3,8 @@ import { CreateWeekFocusDTO, WeekFocus } from "../model/types";
 
 export const weekFocusApi = {
   create: async (data: CreateWeekFocusDTO): Promise<WeekFocus> => {
-    const response = await api.post(
-      `/weekly-focus/week/${data.weekPlanId}`,
-      data
-    );
+    const { weekPlanId, ...body } = data;
+    const response = await api.post(`/weekly-focus/week/${weekPlanId}`, body);
     return response.data;
   },
 
@@ -23,7 +21,9 @@ export const weekFocusApi = {
     id: string,
     data: Partial<CreateWeekFocusDTO>
   ): Promise<WeekFocus> => {
-    const response = await api.put(`/weekly-focus/${id}`, data);
+    const { weekPlanId: _weekPlanId, ...body } = data;
+    void _weekPlanId;
+    const response = await api.put(`/weekly-focus/${id}`, body);
     return response.data;
   },
 };

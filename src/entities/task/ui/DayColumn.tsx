@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { TaskCard } from "./TaskCard";
 import { Task, TaskStatus } from "../models/task.model";
-import { useMemo, CSSProperties, useRef, memo } from "react";
+import { useMemo, useRef, memo } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 interface DayColumnProps {
@@ -14,43 +14,6 @@ interface DayColumnProps {
   onStatusChange?: (taskId: string, status: TaskStatus) => void;
   isCurrentDay?: boolean;
   scrollToRef?: React.RefObject<HTMLDivElement | null>;
-}
-
-function getProductivityStyle(pct: number, isDark: boolean): CSSProperties {
-  if (isDark) {
-    if (pct >= 100) return {
-      background: "linear-gradient(160deg, #065F46 0%, #047857 60%, #059669 100%)",
-      boxShadow: "0 0 28px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.08)",
-    };
-    if (pct >= 71) return {
-      background: "linear-gradient(160deg, #064E3B 0%, #065F46 100%)",
-      boxShadow: "0 4px 16px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.06)",
-    };
-    if (pct >= 31) return {
-      background: "linear-gradient(160deg, #1E3A5F 0%, #1F2937 100%)",
-      boxShadow: "0 4px 16px rgba(6,182,212,0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
-    };
-    return {
-      background: "linear-gradient(160deg, #1A1A25 0%, #12121A 100%)",
-      boxShadow: "0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)",
-    };
-  }
-  if (pct >= 100) return {
-    background: "linear-gradient(160deg, #D1FAE5 0%, #A7F3D0 100%)",
-    boxShadow: "0 0 20px rgba(16,185,129,0.18)",
-  };
-  if (pct >= 71) return {
-    background: "linear-gradient(160deg, #ECFDF5 0%, #D1FAE5 100%)",
-    boxShadow: "0 4px 12px rgba(16,185,129,0.1)",
-  };
-  if (pct >= 31) return {
-    background: "linear-gradient(160deg, #EFF6FF 0%, #DBEAFE 100%)",
-    boxShadow: "0 4px 12px rgba(59,130,246,0.08)",
-  };
-  return {
-    background: "linear-gradient(160deg, #F8FAFC 0%, #F1F5F9 100%)",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-  };
 }
 
 function getProgressColor(pct: number): string {
@@ -88,21 +51,7 @@ export const DayColumn = memo(function DayColumn({
 
   const totalCount = sortedTasks.length;
   const productivityPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  const isDark = typeof globalThis.window !== "undefined" && document.documentElement.classList.contains("dark");
-  const productivityStyle = getProductivityStyle(productivityPct, isDark);
   const progressColor = getProgressColor(productivityPct);
-
-  const columnStyle: CSSProperties = isCurrentDay
-    ? {
-        ...productivityStyle,
-        boxShadow: isOver
-          ? "0 0 0 2px #8B5CF6, 0 4px 28px rgba(139,92,246,0.35)"
-          : "0 0 0 2px #8B5CF6, 0 0 20px rgba(139,92,246,0.2)",
-      }
-    : isOver
-    ? { ...productivityStyle, boxShadow: "0 0 0 2px #8B5CF6, 0 4px 20px rgba(139,92,246,0.25)" }
-    : productivityStyle;
 
   const mergedRef = (node: HTMLDivElement | null) => {
     setNodeRef(node);
@@ -115,8 +64,15 @@ export const DayColumn = memo(function DayColumn({
   return (
     <div
       ref={mergedRef}
-      style={columnStyle}
-      className="flex-shrink-0 w-[240px] rounded-2xl flex flex-col"
+      className={[
+        "flex-shrink-0 w-[240px] rounded-2xl flex flex-col",
+        "bg-white/80 dark:bg-white/5 border border-black/8 dark:border-white/8",
+        "shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-none",
+        isCurrentDay
+          ? "ring-2 ring-primary/60 shadow-[0_0_20px_rgba(139,92,246,0.2)]"
+          : "",
+        isOver ? "ring-2 ring-primary/80 shadow-[0_4px_20px_rgba(139,92,246,0.25)]" : "",
+      ].join(" ")}
       data-container={day.id}
     >
       <div className="px-4 pt-4 pb-3 border-b border-black/8 dark:border-white/8">
