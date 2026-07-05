@@ -7,6 +7,7 @@ import { CalendarDays, LayoutDashboard, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useYearPlan } from "@/entities/year-plan/hooks/useYearPlan";
 import { findCurrentWeekId } from "@/shared/lib/findCurrentWeek";
+import { PomodoroTimer } from "@/widgets/week/PomodoroTimer";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Обзор", icon: LayoutDashboard },
@@ -20,8 +21,8 @@ export function DashboardNav() {
   const currentWeekId = findCurrentWeekId(yearPlans);
 
   return (
-    <nav className="border-b border-black/8 dark:border-white/6 bg-background/80 backdrop-blur-md">
-      <div className="max-w-[1600px] mx-auto px-4 h-12 flex items-center gap-6">
+    <nav className="sticky top-0 z-30 border-b border-black/8 dark:border-white/6 bg-background/80 backdrop-blur-md">
+      <div className="max-w-[1600px] mx-auto px-4 h-12 flex items-center gap-4">
         <Link
           href="/dashboard"
           className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity"
@@ -68,6 +69,10 @@ export function DashboardNav() {
               Текущая неделя
             </Link>
           ) : null}
+        </div>
+
+        <div className="ml-auto shrink-0">
+          <PomodoroTimer compact />
         </div>
       </div>
     </nav>

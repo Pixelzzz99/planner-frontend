@@ -5,7 +5,6 @@ import { WeekPlan } from "../model/types";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { formatDate } from "date-fns";
 import { signOut } from "next-auth/react";
-import { PomodoroTimer } from "@/widgets/week/PomodoroTimer";
 
 interface WeekPageHeaderProps {
   onBack: () => void;
@@ -14,7 +13,7 @@ interface WeekPageHeaderProps {
 
 export const WeekPageHeader = ({ onBack, weekPlan }: WeekPageHeaderProps) => {
   return (
-    <div className="fixed top-0 left-0 right-0 z-20 glass bg-background/90 backdrop-blur-md border-b border-black/8 dark:border-white/6">
+    <div className="fixed top-12 left-0 right-0 z-20 glass bg-background/90 backdrop-blur-md border-b border-black/8 dark:border-white/6">
       <div className="px-4 sm:px-6 py-2.5 sm:py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
@@ -35,8 +34,6 @@ export const WeekPageHeader = ({ onBack, weekPlan }: WeekPageHeaderProps) => {
               </h1>
             </div>
           </div>
-
-          <PomodoroTimer />
 
           <div className="flex items-center gap-2 shrink-0">
             <ThemeToggle />

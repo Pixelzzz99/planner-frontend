@@ -5,15 +5,22 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Coffee, Pause, Play, RotateCcw, SkipForward, Timer, Zap } from "lucide-react";
 import {
-  formatPomodoroTime,
-  PomodoroPhase,
-  usePomodoroTimer,
-} from "./usePomodoroTimer";
+  Coffee,
+  MoreHorizontal,
+  Pause,
+  Play,
+  RotateCcw,
+  SkipForward,
+  Timer,
+  Zap,
+} from "lucide-react";
+import { formatPomodoroTime, PomodoroPhase } from "./usePomodoroTimer";
+import { usePomodoroTimer } from "./PomodoroContext";
 
 const PHASE_OPTIONS: { value: PomodoroPhase; label: string; short: string }[] = [
   { value: "focus", label: "Фокус", short: "Фокус" },
@@ -33,7 +40,12 @@ const PHASE_ACTIVE: Record<PomodoroPhase, string> = {
   longBreak: "bg-sky-500/20 text-sky-600 dark:text-sky-400",
 };
 
-export function PomodoroTimer() {
+interface PomodoroTimerProps {
+  /** Однострочный вид для глобальной навигации */
+  compact?: boolean;
+}
+
+export function PomodoroTimer({ compact = false }: PomodoroTimerProps) {
   const {
     phase,
     secondsLeft,
@@ -45,8 +57,79 @@ export function PomodoroTimer() {
     goToPhase,
   } = usePomodoroTimer();
 
+  const phaseLabel = PHASE_OPTIONS.find((p) => p.value === phase)?.label ?? "";
   const PhaseIcon =
     phase === "focus" ? Zap : phase === "shortBreak" ? Coffee : Timer;
+
+  const moreMenu = (
+    <DropdownMenuContent align="end" className="w-48">
+      {PHASE_OPTIONS.map((option) => (
+        <DropdownMenuItem
+          key={option.value}
+          onClick={() => goToPhase(option.value)}
+          className={phase === option.value ? "bg-accent" : ""}
+        >
+          {option.label}
+        </DropdownMenuItem>
+      ))}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={skip}>Пропустить фазу</DropdownMenuItem>
+      <DropdownMenuItem onClick={reset}>Сбросить таймер</DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-1 px-2 py-1 rounded-xl border transition-colors shrink-0",
+          PHASE_STYLES[phase],
+        )}
+      >
+        <PhaseIcon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+
+        <div className="flex flex-col leading-none">
+          <span className="text-sm font-bold tabular-nums tracking-tight">
+            {formatPomodoroTime(secondsLeft)}
+          </span>
+          <span className="text-[9px] font-medium opacity-75 max-w-[72px] truncate">
+            {phaseLabel}
+            {completedFocus > 0 && ` · ${completedFocus}🍅`}
+          </span>
+        </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 rounded-lg hover:bg-black/8 dark:hover:bg-white/10"
+          onClick={toggle}
+          title={isRunning ? "Пауза" : "Старт"}
+          aria-label={isRunning ? "Пауза" : "Старт"}
+        >
+          {isRunning ? (
+            <Pause className="h-3.5 w-3.5" />
+          ) : (
+            <Play className="h-3.5 w-3.5 ml-0.5" />
+          )}
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-lg hover:bg-black/8 dark:hover:bg-white/10"
+              title="Режим и действия"
+              aria-label="Режим и действия"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          {moreMenu}
+        </DropdownMenu>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -63,7 +146,7 @@ export function PomodoroTimer() {
             {formatPomodoroTime(secondsLeft)}
           </span>
           <span className="text-[10px] font-medium opacity-80 leading-tight sm:hidden">
-            {PHASE_OPTIONS.find((p) => p.value === phase)?.label}
+            {phaseLabel}
             {completedFocus > 0 && (
               <span className="ml-1 opacity-60">· {completedFocus}🍅</span>
             )}
@@ -109,10 +192,7 @@ export function PomodoroTimer() {
                 <SkipForward className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={skip}>Пропустить фазу</DropdownMenuItem>
-              <DropdownMenuItem onClick={reset}>Сбросить таймер</DropdownMenuItem>
-            </DropdownMenuContent>
+            {moreMenu}
           </DropdownMenu>
         </div>
       </div>

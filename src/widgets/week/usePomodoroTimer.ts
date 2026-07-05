@@ -19,7 +19,7 @@ const DURATIONS: Record<PomodoroPhase, number> = {
 
 type AdvanceOptions = { playAlert?: boolean };
 
-export function usePomodoroTimer() {
+export function usePomodoroTimerState() {
   const [phase, setPhase] = useState<PomodoroPhase>("focus");
   const [secondsLeft, setSecondsLeft] = useState(DURATIONS.focus);
   const [isRunning, setIsRunning] = useState(false);
