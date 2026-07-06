@@ -253,8 +253,8 @@ export const WeekBoard = memo(function WeekBoard({
         </div>
       </div>
 
-      <div className="flex-shrink-0 border-t border-black/8 dark:border-white/6 bg-background/80 backdrop-blur-sm">
-        <div className="px-5 py-3">
+      <div className="flex-shrink-0 border-t border-black/5 dark:border-white/4">
+        <div className="px-4 py-2">
           <TaskArchive
             tasks={archivedTasks}
             isLoading={isLoading}

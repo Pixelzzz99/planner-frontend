@@ -22,6 +22,8 @@ interface TaskCardProps {
   onStatusChange?: (taskId: string, status: TaskStatus) => void;
   /** Rendered inside DragOverlay — no sortable hooks */
   isOverlay?: boolean;
+  /** Компактный приглушённый вид для архива */
+  variant?: "default" | "archive";
 }
 
 const PRIORITY_CONFIG = {
@@ -50,6 +52,7 @@ function TaskCardView({
   style,
   dragHandleProps,
   isOverlay,
+  variant = "default",
 }: {
   task: Task;
   onEdit: (task: Task) => void;
@@ -58,10 +61,12 @@ function TaskCardView({
   style?: CSSProperties;
   dragHandleProps?: Record<string, unknown>;
   isOverlay?: boolean;
+  variant?: "default" | "archive";
 }) {
   const priority = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.LOW;
   const status = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.TODO;
   const isCompleted = task.status === "COMPLETED";
+  const isArchive = variant === "archive";
 
   return (
     <div
@@ -71,46 +76,55 @@ function TaskCardView({
         isOverlay
           ? "shadow-[0_12px_32px_rgba(139,92,246,0.25)] rotate-[1.5deg] scale-[1.02]"
           : "transition-shadow duration-200",
-        "bg-white/80 dark:bg-white/5",
-        "border-black/8 dark:border-white/8",
-        "hover:border-black/15 dark:hover:border-white/15",
-        !isOverlay && "hover:shadow-[0_4px_20px_rgba(139,92,246,0.12)]",
-        isCompleted && !isOverlay ? "opacity-60" : "",
+        isArchive
+          ? "bg-black/3 dark:bg-white/3 border-black/5 dark:border-white/5 opacity-75 hover:opacity-90"
+          : "bg-white/80 dark:bg-white/5 border-black/8 dark:border-white/8 hover:border-black/15 dark:hover:border-white/15",
+        !isOverlay && !isArchive && "hover:shadow-[0_4px_20px_rgba(139,92,246,0.12)]",
+        isCompleted && !isOverlay && !isArchive ? "opacity-60" : "",
       ].join(" ")}
     >
-      <div
-        className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full"
-        style={{ backgroundColor: priority.color }}
-      />
+      {!isArchive && (
+        <div
+          className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full"
+          style={{ backgroundColor: priority.color }}
+        />
+      )}
 
-      <div className="flex gap-2 p-3 pl-[14px]">
+      <div className={["flex gap-2", isArchive ? "p-2 pl-2" : "p-3 pl-[14px]"].join(" ")}>
         <button
           {...dragHandleProps}
-          className="flex items-start pt-0.5 text-muted-foreground/30 hover:text-muted-foreground/70 transition-colors touch-none cursor-grab active:cursor-grabbing"
+          className={[
+            "flex items-start text-muted-foreground/30 hover:text-muted-foreground/70 transition-colors touch-none cursor-grab active:cursor-grabbing",
+            isArchive ? "pt-0" : "pt-0.5",
+          ].join(" ")}
           tabIndex={-1}
         >
-          <GripVertical className="h-4 w-4" />
+          <GripVertical className={isArchive ? "h-3 w-3" : "h-4 w-4"} />
         </button>
 
         <div className="flex-1 min-w-0">
           <p
-            className={`text-sm font-medium leading-snug select-text ${
-              isCompleted
+            className={[
+              "font-medium leading-snug select-text line-clamp-2",
+              isArchive ? "text-xs text-muted-foreground" : "text-sm",
+              isCompleted && !isArchive
                 ? "line-through text-muted-foreground"
-                : "text-foreground"
-            }`}
+                : isArchive
+                  ? ""
+                  : "text-foreground",
+            ].join(" ")}
           >
             {task.title}
           </p>
 
-          {task.description && (
+          {task.description && !isArchive && (
             <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 select-text">
               {task.description}
             </p>
           )}
 
-          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-            {onStatusChange && !isOverlay ? (
+          <div className={["flex items-center gap-1.5 flex-wrap", isArchive ? "mt-1" : "mt-1.5"].join(" ")}>
+            {onStatusChange && !isOverlay && !isArchive ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -144,7 +158,7 @@ function TaskCardView({
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
+            ) : !isArchive ? (
               <span className={`text-[11px] font-medium ${status.cls} flex items-center gap-1`}>
                 <span
                   className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
@@ -152,17 +166,24 @@ function TaskCardView({
                 />
                 {status.label}
               </span>
-            )}
+            ) : null}
 
             {task.category?.name && (
-              <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
+              <span
+                className={[
+                  "rounded-md font-medium truncate max-w-[80px]",
+                  isArchive
+                    ? "text-[10px] px-1 py-0 text-muted-foreground/60"
+                    : "text-[11px] px-1.5 py-0.5 bg-primary/10 text-primary",
+                ].join(" ")}
+              >
                 {task.category.name}
               </span>
             )}
 
             {task.duration > 0 && (
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1 ml-auto">
-                <Clock className="h-3 w-3" />
+              <span className="text-[10px] text-muted-foreground/50 flex items-center gap-0.5 ml-auto">
+                {!isArchive && <Clock className="h-3 w-3" />}
                 {formatDuration(task.duration)}
               </span>
             )}
@@ -201,6 +222,7 @@ export const TaskCard = memo(function TaskCard({
   onDelete,
   onStatusChange,
   isOverlay = false,
+  variant = "default",
 }: TaskCardProps) {
   const {
     attributes,
@@ -225,6 +247,7 @@ export const TaskCard = memo(function TaskCard({
         onDelete={onDelete}
         onStatusChange={onStatusChange}
         isOverlay
+        variant={variant}
         dragHandleProps={{}}
       />
     );
@@ -243,6 +266,7 @@ export const TaskCard = memo(function TaskCard({
         onEdit={onEdit}
         onDelete={onDelete}
         onStatusChange={onStatusChange}
+        variant={variant}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
