@@ -118,7 +118,7 @@ function TaskCardView({
           </p>
 
           {task.description && !isArchive && (
-            <p className="mt-1 text-sm sm:text-[15px] leading-relaxed text-muted-foreground whitespace-pre-wrap line-clamp-6 select-text">
+            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2 select-text">
               {task.description}
             </p>
           )}
