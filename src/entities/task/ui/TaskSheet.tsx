@@ -92,7 +92,7 @@ export function TaskSheet({
           </div>
 
           {/* Status + Priority row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Статус
@@ -146,7 +146,7 @@ export function TaskSheet({
           </div>
 
           {/* Duration + Category row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Timer className="h-3 w-3" />
@@ -208,8 +208,9 @@ export function TaskSheet({
             <Textarea
               value={taskForm.description || ""}
               onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-              placeholder="Дополнительные детали..."
-              className="min-h-[100px] bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm resize-none"
+              placeholder="Дополнительные детали, ссылки, чеклист..."
+              rows={8}
+              className="min-h-[200px] sm:min-h-[240px] bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-base leading-relaxed resize-y"
             />
           </div>
 
@@ -235,20 +236,20 @@ export function TaskSheet({
         </div>
 
         {/* Footer */}
-        <SheetFooter className="px-6 py-4 border-t border-black/8 dark:border-white/8 flex-row items-center justify-between gap-3">
+        <SheetFooter className="px-4 sm:px-6 py-4 border-t border-black/8 dark:border-white/8 flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <Button
             variant="ghost"
             onClick={onArchive}
-            className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 rounded-xl"
+            className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 rounded-xl w-full sm:w-auto order-2 sm:order-1"
           >
             <Archive className="h-4 w-4" />
             <span className="text-sm">В архив</span>
           </Button>
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={onClose} className="h-9 rounded-xl">
+          <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
+            <Button variant="ghost" onClick={onClose} className="h-9 rounded-xl flex-1 sm:flex-none">
               Отмена
             </Button>
-            <Button onClick={onSubmit} className="h-9 px-5 rounded-xl">
+            <Button onClick={onSubmit} className="h-9 px-5 rounded-xl flex-1 sm:flex-none">
               {isNew ? "Создать" : "Сохранить"}
             </Button>
           </div>

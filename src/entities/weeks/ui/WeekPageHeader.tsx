@@ -24,11 +24,11 @@ export const WeekPageHeader = ({ onBack, weekPlan }: WeekPageHeaderProps) => {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="min-w-0 hidden sm:block">
-              <p className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase">
+            <div className="min-w-0 flex-1 sm:flex-none">
+              <p className="text-[10px] text-muted-foreground font-semibold tracking-widest uppercase sm:hidden">
                 Неделя
               </p>
-              <h1 className="text-lg font-bold gradient-text leading-tight truncate">
+              <h1 className="text-sm sm:text-lg font-bold gradient-text leading-tight truncate">
                 {weekPlan?.startDate &&
                   `${formatDate(weekPlan.startDate, "dd.MM")} — ${formatDate(weekPlan.endDate, "dd.MM.yyyy")}`}
               </h1>

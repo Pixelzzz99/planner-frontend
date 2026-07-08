@@ -19,15 +19,15 @@ export const YearPageHeader = ({
   currentWeekHref,
 }: YearPageHeaderProps) => {
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 rounded-2xl glass border border-black/8 dark:border-white/6 shadow-lg mb-8">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-5 w-5 text-primary" />
-        <span className="text-xl font-extrabold gradient-text tracking-tight">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-5 py-3 sm:py-3.5 rounded-2xl glass border border-black/8 dark:border-white/6 shadow-lg mb-6 sm:mb-8">
+      <div className="flex items-center gap-2 min-w-0">
+        <Sparkles className="h-5 w-5 text-primary shrink-0" />
+        <span className="text-lg sm:text-xl font-extrabold gradient-text tracking-tight truncate">
           Calendrium
         </span>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
         <Button
           variant="ghost"
           size="icon"
@@ -49,7 +49,7 @@ export const YearPageHeader = ({
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end gap-2">
         {currentWeekHref && (
           <Button
             asChild

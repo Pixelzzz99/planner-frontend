@@ -294,12 +294,12 @@ export default function YearDashboardPage() {
       />
 
       {/* Goals sidebar + main content */}
-      <div className="flex gap-6 items-start">
-        <div className="w-[300px] flex-shrink-0 sticky top-6">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="w-full lg:w-[300px] flex-shrink-0 lg:sticky lg:top-[4.5rem]">
           <GoalsSection year={selectedYear} />
         </div>
 
-        <div className="flex-1 min-w-0 space-y-6">
+        <div className="flex-1 min-w-0 w-full space-y-6">
           {!activeYearData ? (
             <div className="flex flex-col items-center justify-center py-32 gap-5 rounded-2xl border border-black/8 dark:border-white/6 glass">
               <p className="text-2xl font-bold gradient-text">
@@ -317,7 +317,7 @@ export default function YearDashboardPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               {activeYearData.months.map((month) => (
                 <MonthCard
                   key={month.id}

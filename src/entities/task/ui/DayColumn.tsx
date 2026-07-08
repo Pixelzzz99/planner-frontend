@@ -65,7 +65,7 @@ export const DayColumn = memo(function DayColumn({
     <div
       ref={mergedRef}
       className={[
-        "flex-shrink-0 w-[240px] rounded-2xl flex flex-col",
+        "flex-shrink-0 w-[min(82vw,240px)] sm:w-[240px] rounded-2xl flex flex-col",
         "bg-white/80 dark:bg-white/5 border border-black/8 dark:border-white/8",
         "shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-none",
         isCurrentDay

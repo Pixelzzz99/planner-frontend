@@ -235,7 +235,7 @@ export const WeekBoard = memo(function WeekBoard({
     >
       <div
         ref={scrollBoardRef}
-        className="flex-1 overflow-x-auto overflow-y-auto p-5 pb-6"
+        className="flex-1 overflow-x-auto overflow-y-auto p-3 sm:p-5 pb-4 sm:pb-6"
       >
         <div className="flex gap-4 items-start h-full min-h-0 w-max">
           {DAYS.map((day) => (

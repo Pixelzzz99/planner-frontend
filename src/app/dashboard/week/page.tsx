@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, Suspense, useRef, useEffect } from "react";
+import { useMemo, Suspense, useRef, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { WeekSkeleton } from "@/entities/weeks/ui/WeekSkeleton";
@@ -10,9 +10,10 @@ import { TaskSheet } from "@/entities/task/ui/TaskSheet";
 import { useWeekTasks } from "@/entities/task/hooks/useWeekTasks";
 import { WeekBoard } from "@/widgets/week/WeekBoard";
 import { Button } from "@/components/ui/button";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, LayoutGrid, PanelLeft } from "lucide-react";
 import { QueryErrorState } from "@/shared/ui/QueryErrorState";
 import { useConfirm } from "@/shared/ui/ConfirmDialog";
+import { cn } from "@/lib/utils";
 
 function WeekPageEmpty() {
   return (
@@ -76,6 +77,7 @@ function WeekPageContent() {
 
   const scrollBoardRef = useRef<HTMLDivElement>(null);
   const currentDayRef = useRef<HTMLDivElement | null>(null);
+  const [mobilePanel, setMobilePanel] = useState<"board" | "plan">("board");
 
   useEffect(() => {
     if (!weekPlan || !currentDayRef.current || !scrollBoardRef.current) return;
@@ -143,14 +145,48 @@ function WeekPageContent() {
   }
 
   return (
-    <div className="h-[calc(100vh-3rem)] flex flex-col bg-background overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100dvh-3rem)] lg:h-[calc(100dvh-3rem)] bg-background overflow-hidden">
       <WeekPageHeader
         weekPlan={weekPlan}
         onBack={() => router.push("/dashboard/year")}
       />
 
-      <div className="flex flex-1 min-h-0 overflow-hidden pt-[57px]">
-        <aside className="w-[300px] flex-shrink-0 min-h-0 flex flex-col border-r border-black/8 dark:border-white/6 bg-background/50">
+      <div className="lg:hidden shrink-0 flex border-b border-black/8 dark:border-white/6 bg-background/95 backdrop-blur-sm mt-[52px]">
+        <button
+          type="button"
+          onClick={() => setMobilePanel("board")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors",
+            mobilePanel === "board"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground",
+          )}
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+          Задачи
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobilePanel("plan")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors",
+            mobilePanel === "plan"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground",
+          )}
+        >
+          <PanelLeft className="h-3.5 w-3.5" />
+          План недели
+        </button>
+      </div>
+
+      <div className="flex flex-1 min-h-0 overflow-hidden lg:pt-[52px]">
+        <aside
+          className={cn(
+            "w-full lg:w-[300px] flex-shrink-0 min-h-0 flex flex-col border-r border-black/8 dark:border-white/6 bg-background/50",
+            mobilePanel === "plan" ? "flex flex-1" : "hidden lg:flex",
+          )}
+        >
           <LeftSidePage
             weekId={weekId}
             weekStart={weekPlan.startDate}
@@ -158,7 +194,12 @@ function WeekPageContent() {
           />
         </aside>
 
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main
+          className={cn(
+            "flex-1 flex flex-col overflow-hidden min-w-0",
+            mobilePanel === "board" ? "flex" : "hidden lg:flex",
+          )}
+        >
           <WeekBoard
             tasks={tasks}
             archivedTasks={archivedTasks ?? []}
